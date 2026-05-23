@@ -48,7 +48,7 @@ export default function Login() {
     if (!portalConfig.dashboardRoute) {
       showToast({
         title: "Error",
-        message: "Invalid ID format. Must include a valid prefix (e.g., AD-, DR-, HP-)",
+        message: "Invalid ID format",
         type: "error",
       });
       return;

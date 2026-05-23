@@ -116,7 +116,6 @@ const AdminDashboard = lazy(() => import("../pages/Admin/Dashboard"));
 const HospitalDashboard = lazy(() => import("../pages/Hospital/Dashboard"));
 const LoginPatient = lazy(() => import("../pages/Patient/Login"));
 const Login = lazy(() => import("../pages/login/index.jsx"));
-const HospitalHomePage = lazy(() => import("../pages/Hospital/Home"));
 
 const doctor = "Doctor";
 const patient = "Patient";
@@ -563,14 +562,6 @@ const router = createBrowserRouter([
     element: (
       <PublicRoute>
         <Login />
-      </PublicRoute>
-    ),
-  },
-  {
-    path: "/hospital",
-    element: (
-      <PublicRoute>
-        <HospitalHomePage />
       </PublicRoute>
     ),
   },
