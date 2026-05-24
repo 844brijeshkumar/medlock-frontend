@@ -1,6 +1,5 @@
 import { createBrowserRouter } from "react-router-dom";
 import { lazy } from "react";
-import { PrivateRoute, PublicRoute } from "../utils";
 import Layout from "../components/Layout/index.jsx";
 import {
   doctorNavigation,
@@ -9,113 +8,170 @@ import {
   receptionistNavigation,
   adminNavigation,
 } from "../utils/navigaion.js";
+
 import PhlebotomyDashboard from "../pages/Donation/Dashboard/Collecting.jsx";
 import AnalyticsCommandCenter from "../pages/Donation/Dashboard/Collection.jsx";
-import Bed from "../pages/Depertment/Dashboard/Bed.jsx"
-import AddEvent from "../pages/Depertment/Dashboard/AddEvent.jsx"
-import ViewEvent from "../pages/Depertment/Dashboard/ViewEvent.jsx"
-import BloodLab from "../pages/Donation/Dashboard/BloodLab.jsx"
+import Bed from "../pages/Depertment/Dashboard/Bed.jsx";
+import AddEvent from "../pages/Depertment/Dashboard/AddEvent.jsx";
+import ViewEvent from "../pages/Depertment/Dashboard/ViewEvent.jsx";
+import BloodLab from "../pages/Donation/Dashboard/BloodLab.jsx";
 
 const Contact = lazy(() => import("../pages/ContactUs"));
 const About = lazy(() => import("../pages/AboutUs"));
 const Service = lazy(() => import("../pages/Services"));
 const PrivacyPolicy = lazy(() => import("../pages/Privacy"));
 const TermsOfService = lazy(() => import("../pages/Terms"));
+
 const MedicalHistory = lazy(
   () => import("../pages/Patient/Dashboard/MedicalHistory.jsx"),
 );
+
 const AppointmentBooking = lazy(
   () => import("../pages/Patient/Dashboard/AppointmentBooking.jsx"),
 );
+
 const ReportUpload = lazy(
   () => import("../pages/Doctor/Dashboard/ReportUpload.jsx"),
 );
+
 const MyAppointment = lazy(
   () => import("../pages/Patient/Dashboard/MyAppointment.jsx"),
 );
+
 const MyInsurance = lazy(
   () => import("../pages/Patient/Dashboard/MyInsurance.jsx"),
 );
+
 const MyDonation = lazy(
   () => import("../pages/Patient/Dashboard/MyDonation.jsx"),
 );
+
 const BookDonation = lazy(
   () => import("../pages/Patient/Dashboard/Donating.jsx"),
 );
+
 const AssignReport = lazy(
   () => import("../pages/Doctor/Dashboard/AssignReport.jsx"),
 );
-const Insurance = lazy(() => import("../pages/Doctor/Dashboard/Insurance.jsx"));
+
+const Insurance = lazy(
+  () => import("../pages/Doctor/Dashboard/Insurance.jsx"),
+);
+
 const DoctorsSection = lazy(
   () => import("../pages/Hospital/Dashboard/DoctorSection.jsx"),
 );
+
 const ReportsSection = lazy(
   () => import("../pages/Hospital/Dashboard/ReportSection.jsx"),
 );
+
 const ProfileSection = lazy(
   () => import("../pages/Hospital/Dashboard/ProfileSection.jsx"),
 );
+
 const ReceptionistSection = lazy(
   () => import("../pages/Hospital/Dashboard/ReceptionistsSection.jsx"),
 );
+
 const PatientSettingsPage = lazy(
   () => import("../pages/Patient/Dashboard/PatientSettingsPage.jsx"),
 );
+
 const PatientLookUp = lazy(
   () => import("../pages/Doctor/Dashboard/PatientLookUp.jsx"),
 );
+
 const BranchList = lazy(
   () => import("../pages/Admin/Dashboard/BranchList.jsx"),
 );
+
 const ManagementHospital = lazy(
   () => import("../pages/Admin/Dashboard/Management"),
 );
-const TransferDoctor = lazy(() => import("../pages/Admin/Dashboard/Transfer"));
+
+const TransferDoctor = lazy(
+  () => import("../pages/Admin/Dashboard/Transfer"),
+);
+
 const ManagementDoctor = lazy(
   () => import("../pages/Admin/Dashboard/Management/Doctors.jsx"),
 );
+
 const ManagementReceptionist = lazy(
   () => import("../pages/Admin/Dashboard/Management/Receptionists.jsx"),
 );
+
 const Receptionist = lazy(
   () => import("../pages/Admin/Dashboard/Transfer/Receptionist.jsx"),
 );
+
 const AdminSelection = lazy(
   () => import("../pages/Patient/Dashboard/AdminSelection.jsx"),
 );
+
 const DepartmentCharges = lazy(
   () => import("../pages/Admin/Dashboard/Charges.jsx"),
 );
+
 const Home = lazy(() => import("../pages/Home"));
 const NotFound = lazy(() => import("../pages/NotFound"));
-const PatientDashboard = lazy(() => import("../pages/Patient/Dashboard"));
+
+const PatientDashboard = lazy(
+  () => import("../pages/Patient/Dashboard"),
+);
+
 const ReceptionistDashboard = lazy(
   () => import("../pages/Receptionist/Dashboard"),
 );
+
 const ReceptionistBilling = lazy(
   () => import("../pages/Receptionist/Dashboard/billing.jsx"),
 );
+
 const ReceptionistClaims = lazy(
   () => import("../pages/Receptionist/Dashboard/claims.jsx"),
 );
+
 const ReceptionistStatus = lazy(
   () => import("../pages/Receptionist/Dashboard/status.jsx"),
 );
+
 const ReceptionistUpload = lazy(
   () => import("../pages/Receptionist/Dashboard/upload.jsx"),
 );
+
 const ReceptionistProvider = lazy(
   () => import("../pages/Receptionist/Dashboard/provider.jsx"),
 );
+
 const ReceptionistPreview = lazy(
   () => import("../pages/Receptionist/Dashboard/preview.jsx"),
 );
-const DoctorDashboard = lazy(() => import("../pages/Doctor/Dashboard"));
-const DoctorStatus = lazy(() => import("../pages/Doctor/Dashboard/status.jsx"));
-const AdminDashboard = lazy(() => import("../pages/Admin/Dashboard"));
-const HospitalDashboard = lazy(() => import("../pages/Hospital/Dashboard"));
-const LoginPatient = lazy(() => import("../pages/Patient/Login"));
-const Login = lazy(() => import("../pages/login/index.jsx"));
+
+const DoctorDashboard = lazy(
+  () => import("../pages/Doctor/Dashboard"),
+);
+
+const DoctorStatus = lazy(
+  () => import("../pages/Doctor/Dashboard/status.jsx"),
+);
+
+const AdminDashboard = lazy(
+  () => import("../pages/Admin/Dashboard"),
+);
+
+const HospitalDashboard = lazy(
+  () => import("../pages/Hospital/Dashboard"),
+);
+
+const LoginPatient = lazy(
+  () => import("../pages/Patient/Login"),
+);
+
+const Login = lazy(
+  () => import("../pages/login/index.jsx"),
+);
 
 const doctor = "Doctor";
 const patient = "Patient";
@@ -126,420 +182,337 @@ const admin = "Admin";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: (
-      <PublicRoute>
-        <Home />
-      </PublicRoute>
-    ),
+    element: <Home />,
   },
+
   {
-    path: "/department/bed",
-    element: (
-      <PublicRoute>
-        <Bed />
-      </PublicRoute>
-    ),
+    path: "/dp/bed",
+    element: <Bed />,
   },
+
   {
-    path: "/department/add-event/:patientId/:bedId",
-    element: (
-      <PublicRoute>
-        <AddEvent />
-      </PublicRoute>
-    ),
+    path: "/dp/add-event/:patientId/:bedId",
+    element: <AddEvent />,
   },
+
   {
-    path: "/department/view-event/:patientId/:bedId",
-    element: (
-      <PublicRoute>
-        <ViewEvent />
-      </PublicRoute>
-    ),
+    path: "/dp/view-event/:patientId/:bedId",
+    element: <ViewEvent />,
   },
+
   {
     path: "/blood-lab",
-    element: (
-      <PublicRoute>
-        <BloodLab />
-      </PublicRoute>
-    ),
+    element: <BloodLab />,
   },
+
   {
     path: "/patient/dashboard",
     element: (
-      <PrivateRoute allowedRoles={["patient"]} redirectTo="/login/patient">
-        <Layout navigation={patientNavigation} name={patient}>
-          <PatientDashboard />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={patientNavigation} name={patient}>
+        <PatientDashboard />
+      </Layout>
     ),
   },
+
   {
     path: "/patient/report",
     element: (
-      <PrivateRoute allowedRoles={["patient"]} redirectTo="/login/patient">
-        <Layout navigation={patientNavigation} name={patient}>
-          <MedicalHistory />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={patientNavigation} name={patient}>
+        <MedicalHistory />
+      </Layout>
     ),
   },
+
   {
     path: "/patient/appointment-booking",
     element: (
-      <PrivateRoute allowedRoles={["patient"]} redirectTo="/login/patient">
-        <Layout navigation={patientNavigation} name={patient}>
-          <AppointmentBooking />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={patientNavigation} name={patient}>
+        <AppointmentBooking />
+      </Layout>
     ),
   },
 
   {
     path: "/patient/my-appointment",
     element: (
-      <PrivateRoute allowedRoles={["patient"]} redirectTo="/login/patient">
-        <Layout navigation={patientNavigation} name={patient}>
-          <MyAppointment />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={patientNavigation} name={patient}>
+        <MyAppointment />
+      </Layout>
     ),
   },
+
   {
     path: "/patient/my-insurance",
     element: (
-      <PrivateRoute allowedRoles={["patient"]} redirectTo="/login/patient">
-        <Layout navigation={patientNavigation} name={patient}>
-          <MyInsurance />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={patientNavigation} name={patient}>
+        <MyInsurance />
+      </Layout>
     ),
   },
+
   {
     path: "/patient/my-donation",
     element: (
-      <PrivateRoute allowedRoles={["patient"]} redirectTo="/login/patient">
-        <Layout navigation={patientNavigation} name={patient}>
-          <MyDonation />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={patientNavigation} name={patient}>
+        <MyDonation />
+      </Layout>
     ),
   },
+
   {
     path: "/patient/book-donation",
     element: (
-      <PrivateRoute allowedRoles={["patient"]} redirectTo="/login/patient">
-        <Layout navigation={patientNavigation} name={patient}>
-          <BookDonation />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={patientNavigation} name={patient}>
+        <BookDonation />
+      </Layout>
     ),
   },
+
   {
     path: "/patient/selectadmin",
-    element: (
-      <PrivateRoute allowedRoles={["patient"]} redirectTo="/login/patient">
-        <AdminSelection />
-      </PrivateRoute>
-    ),
+    element: <AdminSelection />,
   },
+
   {
     path: "/patient/settings",
     element: (
-      <PrivateRoute allowedRoles={["patient"]} redirectTo="/login/patient">
-        <Layout navigation={patientNavigation} name={patient}>
-          <PatientSettingsPage />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={patientNavigation} name={patient}>
+        <PatientSettingsPage />
+      </Layout>
     ),
   },
 
   {
-    path: "/doctor/dashboard",
+    path: "/dr/dashboard",
     element: (
-      <PrivateRoute allowedRoles={["doctor"]} redirectTo="/login">
-        <Layout navigation={doctorNavigation} name={doctor}>
-          {" "}
-          <DoctorDashboard />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/doctor/insurance",
-    element: (
-      <PrivateRoute allowedRoles={["doctor"]} redirectTo="/login">
-        <Layout navigation={doctorNavigation} name={doctor}>
-          {" "}
-          <Insurance />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/doctor/status",
-    element: (
-      <PrivateRoute allowedRoles={["doctor"]} redirectTo="/login">
-        <Layout navigation={doctorNavigation} name={doctor}>
-          {" "}
-          <DoctorStatus />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/doctor/report-upload",
-    element: (
-      <PrivateRoute allowedRoles={["doctor"]} redirectTo="/login">
-        <Layout navigation={doctorNavigation} name={doctor}>
-          {" "}
-          <ReportUpload />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/doctor/patient",
-    element: (
-      <PrivateRoute allowedRoles={["doctor"]} redirectTo="/login">
-        <Layout navigation={doctorNavigation} name={doctor}>
-          {" "}
-          <PatientLookUp />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/doctor/assign-report",
-    element: (
-      <PrivateRoute allowedRoles={["doctor"]} redirectTo="/login">
-        <Layout navigation={doctorNavigation} name={doctor}>
-          {" "}
-          <AssignReport />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/hospital/dashboard",
-    element: (
-      <PrivateRoute allowedRoles={["hospital"]} redirectTo="/login">
-        <Layout navigation={hospitalNavigation} name={hospital}>
-          <HospitalDashboard />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/hospital/doctor-form",
-    element: (
-      <PrivateRoute allowedRoles={["hospital"]} redirectTo="/login">
-        <Layout navigation={hospitalNavigation} name={hospital}>
-          <DoctorsSection />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/hospital/receptionist-form",
-    element: (
-      <PrivateRoute allowedRoles={["hospital"]} redirectTo="/login">
-        <Layout navigation={hospitalNavigation} name={hospital}>
-          <ReceptionistSection />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/hospital/reports",
-    element: (
-      <PrivateRoute allowedRoles={["hospital"]} redirectTo="/login">
-        <Layout navigation={hospitalNavigation} name={hospital}>
-          <ReportsSection />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/hospital/profile",
-    element: (
-      <PrivateRoute allowedRoles={["hospital"]} redirectTo="/login">
-        <Layout navigation={hospitalNavigation} name={hospital}>
-          <ProfileSection />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/admin/dashboard",
-    element: (
-      <PrivateRoute allowedRoles={["admin"]} redirectTo="/login">
-        <Layout navigation={adminNavigation} name={admin}>
-          <AdminDashboard />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/admin/charges",
-    element: (
-      <PrivateRoute allowedRoles={["admin"]} redirectTo="/login">
-        <Layout navigation={adminNavigation} name={admin}>
-          <DepartmentCharges />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/admin/branch",
-    element: (
-      <PrivateRoute allowedRoles={["admin"]} redirectTo="/login">
-        <Layout navigation={adminNavigation} name={admin}>
-          <BranchList />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/admin/management/hospital",
-    element: (
-      <PrivateRoute allowedRoles={["admin"]} redirectTo="/login">
-        <Layout navigation={adminNavigation} name={admin}>
-          <ManagementHospital />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/admin/management/doctor",
-    element: (
-      <PrivateRoute allowedRoles={["admin"]} redirectTo="/login">
-        <Layout navigation={adminNavigation} name={admin}>
-          <ManagementDoctor />
-        </Layout>
-      </PrivateRoute>
-    ),
-  },
-  {
-    path: "/admin/management/receptionist",
-    element: (
-      <PrivateRoute allowedRoles={["admin"]} redirectTo="/login">
-        <Layout navigation={adminNavigation} name={admin}>
-          <ManagementReceptionist />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={doctorNavigation} name={doctor}>
+        <DoctorDashboard />
+      </Layout>
     ),
   },
 
   {
-    path: "/admin/transfer/doctor",
+    path: "/dr/insurance",
     element: (
-      <PrivateRoute allowedRoles={["admin"]} redirectTo="/login">
-        <Layout navigation={adminNavigation} name={admin}>
-          <TransferDoctor />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={doctorNavigation} name={doctor}>
+        <Insurance />
+      </Layout>
     ),
   },
+
   {
-    path: "/admin/transfer/receptionist",
+    path: "/dr/status",
     element: (
-      <PrivateRoute allowedRoles={["admin"]} redirectTo="/login">
-        <Layout navigation={adminNavigation} name={admin}>
-          <Receptionist />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={doctorNavigation} name={doctor}>
+        <DoctorStatus />
+      </Layout>
     ),
   },
+
   {
-    path: "/receptionist/dashboard",
+    path: "/dr/report-upload",
     element: (
-      <PrivateRoute
-        allowedRoles={["receptionist"]}
-        redirectTo="/login"
-      >
-        <Layout navigation={receptionistNavigation} name={receptionist}>
-          <ReceptionistDashboard />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={doctorNavigation} name={doctor}>
+        <ReportUpload />
+      </Layout>
     ),
   },
+
   {
-    path: "/receptionist/billing",
+    path: "/dr/patient",
     element: (
-      <PrivateRoute
-        allowedRoles={["receptionist"]}
-        redirectTo="/login"
-      >
-        <Layout navigation={receptionistNavigation} name={receptionist}>
-          <ReceptionistBilling />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={doctorNavigation} name={doctor}>
+        <PatientLookUp />
+      </Layout>
     ),
   },
+
   {
-    path: "/receptionist/claims",
+    path: "/dr/assign-report",
     element: (
-      <PrivateRoute
-        allowedRoles={["receptionist"]}
-        redirectTo="/login"
-      >
-        <Layout navigation={receptionistNavigation} name={receptionist}>
-          <ReceptionistClaims />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={doctorNavigation} name={doctor}>
+        <AssignReport />
+      </Layout>
     ),
   },
+
   {
-    path: "/receptionist/upload",
+    path: "/hp/dashboard",
     element: (
-      <PrivateRoute
-        allowedRoles={["receptionist"]}
-        redirectTo="/login"
-      >
-        <Layout navigation={receptionistNavigation} name={receptionist}>
-          <ReceptionistUpload />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={hospitalNavigation} name={hospital}>
+        <HospitalDashboard />
+      </Layout>
     ),
   },
+
   {
-    path: "/receptionist/status",
+    path: "/hp/doctor-form",
     element: (
-      <PrivateRoute
-        allowedRoles={["receptionist"]}
-        redirectTo="/login"
-      >
-        <Layout navigation={receptionistNavigation} name={receptionist}>
-          <ReceptionistStatus />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={hospitalNavigation} name={hospital}>
+        <DoctorsSection />
+      </Layout>
     ),
   },
+
   {
-    path: "/receptionist/provider",
+    path: "/hp/receptionist-form",
     element: (
-      <PrivateRoute
-        allowedRoles={["receptionist"]}
-        redirectTo="/login"
-      >
-        <Layout navigation={receptionistNavigation} name={receptionist}>
-          <ReceptionistProvider />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={hospitalNavigation} name={hospital}>
+        <ReceptionistSection />
+      </Layout>
     ),
   },
+
   {
-    path: "/receptionist/preview",
+    path: "/hp/reports",
     element: (
-      <PrivateRoute
-        allowedRoles={["receptionist"]}
-        redirectTo="/login"
-      >
-        <Layout navigation={receptionistNavigation} name={receptionist}>
-          <ReceptionistPreview />
-        </Layout>
-      </PrivateRoute>
+      <Layout navigation={hospitalNavigation} name={hospital}>
+        <ReportsSection />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/hp/profile",
+    element: (
+      <Layout navigation={hospitalNavigation} name={hospital}>
+        <ProfileSection />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/ad/dashboard",
+    element: (
+      <Layout navigation={adminNavigation} name={admin}>
+        <AdminDashboard />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/ad/charges",
+    element: (
+      <Layout navigation={adminNavigation} name={admin}>
+        <DepartmentCharges />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/ad/branch",
+    element: (
+      <Layout navigation={adminNavigation} name={admin}>
+        <BranchList />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/ad/management/hospital",
+    element: (
+      <Layout navigation={adminNavigation} name={admin}>
+        <ManagementHospital />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/ad/management/doctor",
+    element: (
+      <Layout navigation={adminNavigation} name={admin}>
+        <ManagementDoctor />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/ad/management/receptionist",
+    element: (
+      <Layout navigation={adminNavigation} name={admin}>
+        <ManagementReceptionist />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/ad/transfer/doctor",
+    element: (
+      <Layout navigation={adminNavigation} name={admin}>
+        <TransferDoctor />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/ad/transfer/receptionist",
+    element: (
+      <Layout navigation={adminNavigation} name={admin}>
+        <Receptionist />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/rs/dashboard",
+    element: (
+      <Layout navigation={receptionistNavigation} name={receptionist}>
+        <ReceptionistDashboard />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/rs/billing",
+    element: (
+      <Layout navigation={receptionistNavigation} name={receptionist}>
+        <ReceptionistBilling />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/rs/claims",
+    element: (
+      <Layout navigation={receptionistNavigation} name={receptionist}>
+        <ReceptionistClaims />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/rs/upload",
+    element: (
+      <Layout navigation={receptionistNavigation} name={receptionist}>
+        <ReceptionistUpload />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/rs/status",
+    element: (
+      <Layout navigation={receptionistNavigation} name={receptionist}>
+        <ReceptionistStatus />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/rs/provider",
+    element: (
+      <Layout navigation={receptionistNavigation} name={receptionist}>
+        <ReceptionistProvider />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/rs/preview",
+    element: (
+      <Layout navigation={receptionistNavigation} name={receptionist}>
+        <ReceptionistPreview />
+      </Layout>
     ),
   },
 
@@ -548,41 +521,31 @@ const router = createBrowserRouter([
   { path: "/services", element: <Service /> },
   { path: "/privacy-policy", element: <PrivacyPolicy /> },
   { path: "/terms-of-service", element: <TermsOfService /> },
-  
+
   {
     path: "/login/patient",
-    element: (
-      <PublicRoute>
-        <LoginPatient />
-      </PublicRoute>
-    ),
-  },
-  {
-    path: "/login",
-    element: (
-      <PublicRoute>
-        <Login />
-      </PublicRoute>
-    ),
-  },
-  {
-    path: "/blood-collecting",
-    element: (
-      <PublicRoute>
-        <PhlebotomyDashboard />
-      </PublicRoute>
-    ),
-  },
-  {
-    path: "/blood-collection",
-    element: (
-      <PublicRoute>
-        <AnalyticsCommandCenter />
-      </PublicRoute>
-    ),
+    element: <LoginPatient />,
   },
 
-  { path: "*", element: <NotFound /> },
+  {
+    path: "/login",
+    element: <Login />,
+  },
+
+  {
+    path: "/blood-collecting",
+    element: <PhlebotomyDashboard />,
+  },
+
+  {
+    path: "/blood-collection",
+    element: <AnalyticsCommandCenter />,
+  },
+
+  {
+    path: "*",
+    element: <NotFound />,
+  },
 ]);
 
 export default router;

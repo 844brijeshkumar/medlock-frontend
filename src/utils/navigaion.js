@@ -39,11 +39,11 @@ export const patientNavigation = [
 ];
 
 export const adminNavigation = [
-  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { name: "Branch", href: "/admin/branch", icon: Building2 },
+  { name: "Dashboard", href: "/ad/dashboard", icon: LayoutDashboard },
+  { name: "Branch", href: "/ad/branch", icon: Building2 },
   {
     name: "charges",
-    href: "/admin/charges",
+    href: "/ad/charges",
     icon: DocumentTextIcon,
   },
   {
@@ -52,13 +52,13 @@ export const adminNavigation = [
     subItems: [
       {
         name: "Hospitals",
-        href: "/admin/management/hospital",
+        href: "/ad/management/hospital",
         icon: MagnifyingGlassIcon,
       },
-      { name: "Doctors", href: "/admin/management/doctor", icon: Contact2 },
+      { name: "Doctors", href: "/ad/management/doctor", icon: Contact2 },
       {
         name: "Receptionists",
-        href: "/admin/management/receptionist",
+        href: "/ad/management/receptionist",
         icon: Contact2,
       },
     ],
@@ -67,10 +67,10 @@ export const adminNavigation = [
     name: "Transfer",
     icon: Users,
     subItems: [
-      { name: "Doctor", href: "/admin/transfer/doctor", icon: Package },
+      { name: "Doctor", href: "/ad/transfer/doctor", icon: Package },
       {
         name: "Receptionist",
-        href: "/admin/transfer/receptionist",
+        href: "/ad/transfer/receptionist",
         icon: FileText,
       },
     ],
@@ -78,40 +78,40 @@ export const adminNavigation = [
 ];
 
 export const doctorNavigation = [
-  { name: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard },
-  { name: "Report", href: "/doctor/report-upload", icon: DocumentTextIcon },
-  { name: "Assign", href: "/doctor/assign-report", icon: User },
-  { name: "Patients", href: "/doctor/patient", icon: Users },
+  { name: "Dashboard", href: "/dr/dashboard", icon: LayoutDashboard },
+  { name: "Report", href: "/dr/report-upload", icon: DocumentTextIcon },
+  { name: "Assign", href: "/dr/assign-report", icon: User },
+  { name: "Patients", href: "/dr/patient", icon: Users },
   {
     name: "Insurance",
     icon: FileText,
     subItems: [
-      { name: "Clinical Data", href: "/doctor/insurance", icon: Package },
-      {name: "Status", href: "/doctor/status", icon: Stethoscope},
+      { name: "Clinical Data", href: "/dr/insurance", icon: Package },
+      {name: "Status", href: "/dr/status", icon: Stethoscope},
     ],
   },
 ];
 
 export const receptionistNavigation = [
-  { name: "Dashboard", href: "/receptionist/dashboard", icon: Activity },
+  { name: "Dashboard", href: "/rs/dashboard", icon: Activity },
   {
     name: "Insurance",
     icon: FileText,
     subItems: [
-      { name: "Claims", href: "/receptionist/claims", icon: Package },
-      {name: "Provider", href: "/receptionist/provider", icon: User},
-      {name: "Billing", href: "/receptionist/billing", icon: FileText},
-      {name: "Upload", href: "/receptionist/upload", icon: Package},
-      {name: "Preview", href: "/receptionist/preview", icon: User},
-      {name: "Status", href: "/receptionist/status", icon: Stethoscope},
+      { name: "Claims", href: "/rs/claims", icon: Package },
+      {name: "Provider", href: "/rs/provider", icon: User},
+      {name: "Billing", href: "/rs/billing", icon: FileText},
+      {name: "Upload", href: "/rs/upload", icon: Package},
+      {name: "Preview", href: "/rs/preview", icon: User},
+      {name: "Status", href: "/rs/status", icon: Stethoscope},
     ],
   },
 ];
 
 export const hospitalNavigation = [
-  { name: "Dashboard", href: "/hospital/dashboard", icon: LayoutDashboard },
-  { name: "Doctors", href: "/hospital/doctor-form", icon: Stethoscope },
-  { name: "Receptionists", href: "/hospital/receptionist-form", icon: UserCog },
-  { name: "Profile", href: "/hospital/profile", icon: Building2 },
-  { name: "Reports", href: "/hospital/reports", icon: DocumentTextIcon },
+  { name: "Dashboard", href: "/hp/dashboard", icon: LayoutDashboard },
+  { name: "Doctors", href: "/hp/doctor-form", icon: Stethoscope },
+  { name: "Receptionists", href: "/hp/receptionist-form", icon: UserCog },
+  { name: "Profile", href: "/hp/profile", icon: Building2 },
+  { name: "Reports", href: "/hp/reports", icon: DocumentTextIcon },
 ];
