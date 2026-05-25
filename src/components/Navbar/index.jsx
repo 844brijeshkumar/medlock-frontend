@@ -1,7 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FaBars, FaTimes } from "react-icons/fa";
-// import { useLocation } from "react-router-dom";
 
 const nav = [
   {
@@ -11,16 +10,31 @@ const nav = [
   },
   {
     id: 2,
-    link: "/services",
-    name: "Services",
+    link: "/features",
+    name: "Features",
   },
   {
     id: 3,
-    link: "/about",
-    name: "About Us",
+    link: "/plugins",
+    name: "Plugins",
   },
   {
     id: 4,
+    link: "/pricing",
+    name: "Pricing",
+  },
+  {
+    id: 5,
+    link: "/solutions",
+    name: "Solutions",
+  },
+  {
+    id: 6,
+    link: "/about",
+    name: "About",
+  },
+  {
+    id: 7,
     link: "/contact",
     name: "Contact",
   },
@@ -28,90 +42,81 @@ const nav = [
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [theme, setTheme] = useState(localStorage.getItem("theme") || "");
+
   const location = useLocation();
 
-  // Toggle mobile menu
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
-  const toggleTheme = () => {
-    setTheme(theme === "theme-dark" ? "" : "theme-dark");
-  };
-  // Apply theme globally
-  useEffect(() => {
-    document.documentElement.className = theme;
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  const getLogoSrc = () => {
-    if (theme === "theme-dark") {
-      return "/home-logo.png";
-    }
-    return "/medlock.png";
-  };
 
   return (
-    <nav className="w-full bg-[var(--color-bg)] sticky shadow-[var(--color-shadow)] z-50 top-0">
-      <div className="w-full mx-auto px-6 py-4 flex items-center justify-between bg-[var(--color-bg)]">
+    <nav className="w-full sticky top-0 z-50 backdrop-blur-md bg-[var(--color-bg)]/90 border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        
+        {/* Logo */}
         <Link
           to="/"
-          className="flex items-center space-x-2"
+          className="flex items-center gap-3"
           onClick={isMenuOpen ? toggleMenu : undefined}
         >
-          <div className="flex items-center ">
-            <div className="h-25 w-23 flex items-center justify-center">
-              <img
-                src={theme == "theme-dark" ? "/home-logo.png" : "/medlock.png"}
-                className={theme == "theme-dark" ? "h-17 w-18" : "h-20 w-20"}
-                alt="MedLock Logo"
-              />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-[var(--color-text)]">
-                MedLock
-              </h1>
-              <p className="text-xs text-[var(--color-card-secondary-text)]">
-                Centralized Medical Reports
-              </p>
-            </div>
+          <div className="h-14 w-14 flex items-center justify-center">
+            <img
+              src="/medlock.png"
+              className="h-12 w-12 object-contain"
+              alt="MedLock Logo"
+            />
+          </div>
+
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--color-text)]">
+              MedLock
+            </h1>
+
+            <p className="text-xs tracking-wide text-[var(--color-card-secondary-text)]">
+              Healthcare CRM Infrastructure
+            </p>
           </div>
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-6 font-medium">
-          {nav?.map((page, index) => (
+        <div className="hidden lg:flex items-center gap-8 font-medium">
+          {nav.map((page) => (
             <Link
+              key={page.id}
               to={page.link}
-              key={index}
-              className={` ${
-                location.pathname == page.link
-                  ? "text-[var(--color-hover)]"
-                  : "text-[var(--color-text)]"
-              } hover:text-[var(--color-hover)] transition-colors duration-200`}
+              className={`transition-all duration-200 hover:text-[var(--color-hover)]
+                ${
+                  location.pathname === page.link
+                    ? "text-[var(--color-hover)]"
+                    : "text-[var(--color-text)]"
+                }`}
             >
               {page.name}
             </Link>
           ))}
-          {/* <button
-            onClick={toggleTheme}
-            className="p-2 rounded-xl cursor-pointer bg-[var(--color-primary)] text-white flex items-center justify-center transition-colors duration-200"
+        </div>
+
+        {/* Desktop Right Side */}
+        <div className="hidden lg:flex items-center gap-4">
+          <Link
+            to="/login"
+            className="text-[var(--color-text)] hover:text-[var(--color-hover)] transition duration-200"
           >
-            {" "}
-            {theme === "theme-dark" ? (
-              <h1>Dark</h1>
-            ) : (
-              // <FaSun className="w-5 h-5" />
-              <h1>Light</h1>
-              // <FaMoon className="w-5 h-5" />
-            )}
-          </button> */}
+            Login
+          </Link>
+
+          <Link
+            to="/demo"
+            className="bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl hover:bg-[var(--color-hover)] transition duration-300 shadow-md"
+          >
+            Request Demo
+          </Link>
         </div>
 
         {/* Mobile Menu Button */}
         <button
           onClick={toggleMenu}
-          className="md:hidden text-[var(--color-text)]"
+          className="lg:hidden text-[var(--color-text)]"
         >
           {isMenuOpen ? (
             <FaTimes className="w-6 h-6" />
@@ -121,34 +126,45 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full bg-[var(--color-bg)] shadow-lg py-4 transition-all duration-300 transform origin-top">
-          <div className="flex flex-col items-center space-y-4">
-            {nav.map((page, index) => (
+        <div className="lg:hidden border-t border-white/10 bg-[var(--color-bg)]/95 backdrop-blur-md">
+          <div className="flex flex-col px-6 py-6 gap-5">
+            
+            {nav.map((page) => (
               <Link
+                key={page.id}
                 to={page.link}
-                key={index}
                 onClick={toggleMenu}
-                className="hover:text-[var(--color-hover)] transition-colors duration-200 text-lg text-[var(--color-text)]"
+                className={`text-lg transition duration-200
+                  ${
+                    location.pathname === page.link
+                      ? "text-[var(--color-hover)]"
+                      : "text-[var(--color-text)]"
+                  }`}
               >
                 {page.name}
               </Link>
             ))}
 
-            {/* Theme Selector in Mobile */}
-            {/* <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full cursor-pointer bg-[var(--color-primary)] text-white flex items-center justify-center"
-            >
-              {theme === "theme-dark" ? (
-                <h1>Dark</h1>
-              ) : (
-                // <FaSun className="w-5 h-5" />
-                <h1>Light</h1>
-                // <FaMoon className="w-5 h-5" />
-              )}
-            </button> */}
+            {/* Mobile Buttons */}
+            <div className="flex flex-col gap-3 pt-4">
+              <Link
+                to="/login"
+                onClick={toggleMenu}
+                className="w-full border border-[var(--color-primary)] text-[var(--color-text)] py-3 rounded-xl text-center hover:bg-[var(--color-primary)] hover:text-white transition"
+              >
+                Login
+              </Link>
+
+              <Link
+                to="/demo"
+                onClick={toggleMenu}
+                className="w-full bg-[var(--color-primary)] text-white py-3 rounded-xl text-center hover:bg-[var(--color-hover)] transition"
+              >
+                Request Demo
+              </Link>
+            </div>
           </div>
         </div>
       )}

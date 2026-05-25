@@ -115,6 +115,10 @@ const DepartmentCharges = lazy(
 );
 
 const Home = lazy(() => import("../pages/Home"));
+const Features = lazy(() => import("../pages/Features"));
+const Plugins = lazy(() => import("../pages/Plugins"));
+const Pricing = lazy(() => import("../pages/Pricing"));
+const Solutions = lazy(() => import("../pages/Solutions"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 
 const PatientDashboard = lazy(
@@ -517,6 +521,10 @@ const router = createBrowserRouter([
   },
 
   { path: "/contact", element: <Contact /> },
+  { path: "/features", element: <Features /> },
+  { path: "/plugins", element: <Plugins /> },
+  { path: "/pricing", element: <Pricing /> },
+  { path: "/solutions", element: <Solutions /> },
   { path: "/about", element: <About /> },
   { path: "/services", element: <Service /> },
   { path: "/privacy-policy", element: <PrivacyPolicy /> },
