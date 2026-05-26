@@ -1,0 +1,14 @@
+[build]
+  functions = "netlify/functions" # This is the default folder for your functions
+
+# This rule tells Netlify: "Any request to /api/* should go to my functions folder"
+[[redirects]]
+  from = "/api/abdm/*"
+  to = "/.netlify/functions/abdm"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,6 +1,8 @@
 import { createBrowserRouter } from "react-router-dom";
 import { lazy } from "react";
 import Layout from "../components/Layout/index.jsx";
+import HomeLayout from "../components/HomeLayout/index.jsx";
+
 import {
   doctorNavigation,
   hospitalNavigation,
@@ -114,7 +116,7 @@ const DepartmentCharges = lazy(
   () => import("../pages/Admin/Dashboard/Charges.jsx"),
 );
 
-const Home = lazy(() => import("../pages/Home"));
+import Home from "../pages/Home";
 const Features = lazy(() => import("../pages/Features"));
 const Plugins = lazy(() => import("../pages/Plugins"));
 const Pricing = lazy(() => import("../pages/Pricing"));
@@ -184,11 +186,25 @@ const receptionist = "Receptionist";
 const admin = "Admin";
 
 const router = createBrowserRouter([
+  // --- PUBLIC FRONT DESK PAGES ---
   {
     path: "/",
-    element: <Home />,
+    element: <HomeLayout />,
+    children: [
+      { index: true, element: <Home /> },
+      { path: "about", element: <About /> },
+      { path: "contact", element: <Contact /> },
+      { path: "features", element: <Features /> },
+      { path: "plugins", element: <Plugins /> },
+      { path: "pricing", element: <Pricing /> },
+      { path: "solutions", element: <Solutions /> },
+      { path: "services", element: <Service /> },
+      { path: "privacy-policy", element: <PrivacyPolicy /> },
+      { path: "terms-of-service", element: <TermsOfService /> },
+    ],
   },
 
+  // --- INTERNAL DASHBOARDS AND OTHER ROUTES ---
   {
     path: "/dp/bed",
     element: <Bed />,
@@ -519,16 +535,6 @@ const router = createBrowserRouter([
       </Layout>
     ),
   },
-
-  { path: "/contact", element: <Contact /> },
-  { path: "/features", element: <Features /> },
-  { path: "/plugins", element: <Plugins /> },
-  { path: "/pricing", element: <Pricing /> },
-  { path: "/solutions", element: <Solutions /> },
-  { path: "/about", element: <About /> },
-  { path: "/services", element: <Service /> },
-  { path: "/privacy-policy", element: <PrivacyPolicy /> },
-  { path: "/terms-of-service", element: <TermsOfService /> },
 
   {
     path: "/login/patient",
