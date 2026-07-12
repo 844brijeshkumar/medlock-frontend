@@ -240,7 +240,7 @@ export const getReceptionistForAdmin = async (token) => {
 };
 
 export const getTheme = async (token) => {
-  const res = await api.get("/.netlify/functions/getTheme", {
+  const res = await api.get("http://127.0.0.1:8000/api/ad/dashboard/?${queryParams.toString()}", {
     headers: {
       Authorization: `Bearer ${token}`,
     },

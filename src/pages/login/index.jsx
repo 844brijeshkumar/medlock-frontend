@@ -94,6 +94,10 @@ export default function Login() {
         localStorage.setItem("dashboardName", data.name);
         localStorage.setItem("user_id", data.user_id);
 
+        if (data.theme) {
+          refreshTheme(data.theme); 
+        }
+
         e.target.reset();
 
         await refreshTheme();
