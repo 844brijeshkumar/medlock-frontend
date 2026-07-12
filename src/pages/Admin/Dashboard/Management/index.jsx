@@ -9,51 +9,7 @@ import {
   Search,
 } from "lucide-react";
 import { useToast } from "../../../../utils/ToastContext";
-import {
-  getHospitalForAdmin,
-  hospitalUpdate,
-  hospitalRegister,
-} from "../../../../api/auth";
-
 import { fetchLocations } from "../../../../utils/api";
-
-// Constant data for locations
-const STATES_DATA = [
-  "Delhi (NCT)",
-  "Maharashtra",
-  "Karnataka",
-  "Tamil Nadu",
-  "Uttar Pradesh",
-  "West Bengal",
-  "Gujarat",
-  "Rajasthan",
-  "Kerala",
-  "Punjab",
-  "Haryana",
-  "Telangana",
-];
-
-const DISTRICTS_MAP = {
-  "Delhi (NCT)": [
-    "New Delhi",
-    "North Delhi",
-    "South Delhi",
-    "East Delhi",
-    "West Delhi",
-    "Central Delhi",
-  ],
-  Maharashtra: ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad"],
-  Karnataka: ["Bengaluru", "Mysuru", "Hubballi", "Mangaluru", "Belagavi"],
-  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Salem", "Trichy"],
-  "Uttar Pradesh": [
-    "Lucknow",
-    "Kanpur",
-    "Varanasi",
-    "Agra",
-    "Noida",
-    "Ghaziabad",
-  ],
-};
 
 export default function Management() {
   const [activeSubTab] = useState("hospital");
@@ -62,6 +18,7 @@ export default function Management() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { showToast } = useToast();
+  
   const [locationData, setLocationData] = useState({});
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedState, setSelectedState] = useState("");
@@ -78,12 +35,15 @@ export default function Management() {
     [],
   );
 
+  // Load locations
   useEffect(() => {
     const loadLocations = async () => {
-      // setIsLoadingLocations(true);
-      const data = await fetchLocations();
-      setLocationData(data);
-      // setIsLoadingLocations(false);
+      try {
+        const data = await fetchLocations();
+        setLocationData(data);
+      } catch (err) {
+        console.error("Failed to load locations:", err);
+      }
     };
     loadLocations();
   }, []);
@@ -93,8 +53,15 @@ export default function Management() {
     const fetchHospitals = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await getHospitalForAdmin(token);
-        if (res.status) setHospitals(res.hospitals);
+        // Using the GET endpoint we made previously
+        const res = await fetch("http://127.0.0.1:8000/api/ad/branches/", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        const data = await res.json();
+        if (res.ok) {
+          setHospitals(data.hospitals || []);
+        }
       } catch (err) {
         console.error("Failed to load hospitals:", err);
       }
@@ -107,25 +74,27 @@ export default function Management() {
     setFormData({});
     setSelectedEntityId("");
     setIsSuccess(false);
+    setSelectedState("");
+    setSelectedDistrict("");
   }, [mode]);
 
-  // Load hospital data for update
+  // Load hospital data into form for update
   useEffect(() => {
     if (mode === "update" && selectedEntityId) {
-      const h = hospitals.find((h) => h.Id === selectedEntityId);
+      const h = hospitals.find((h) => h.id === selectedEntityId);
       if (h) {
         setFormData({
-          name: h.Name,
-          npi: h.NPI_id__c || "",
-          contact: h.Contact_Number__c || "",
-          address: h.Address__c || "",
-          email: h.Email__c || "",
-          state: h?.State__r?.Name || "",
-          district: h?.District__r?.Name || "",
-          image: h.Image__c || "",
-          stateId: h.State__c || "",
-          districtId: h.district__c || "",
+          name: h.Name || "",
+          npi: h.npi_id || "", 
+          contact: h.contact_number || "",
+          address: h.address || "",
+          email: h.email || "",
+          state: h.State__r?.Name || "",
+          district: h.District__r?.Name || "",
+          image: h.image_url || "",
         });
+        setSelectedState(h.State__r?.Name || "");
+        setSelectedDistrict(h.District__r?.Name || "");
       }
     }
   }, [selectedEntityId, mode, hospitals]);
@@ -152,57 +121,65 @@ export default function Management() {
     setIsProcessing(true);
     try {
       const token = localStorage.getItem("token");
-      let response;
+      const isAdd = mode === "add";
+      
+      // Setup fetch configuration based on Mode (POST vs PUT)
+      const fetchMethod = isAdd ? "POST" : "PUT";
+      const payload = isAdd ? formData : { ...formData, id: selectedEntityId };
 
-      if (mode === "add") {
-        response = await hospitalRegister(token, formData);
-      } else {
-        response = await hospitalUpdate(token, {
-          ...formData,
-          id: selectedEntityId,
-        });
-      }
+      const response = await fetch("http://127.0.0.1:8000/api/ad/manage/hospitals/", {
+        method: fetchMethod,
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-      if (response.status) {
-        // Sync local state
+      const data = await response.json();
+
+      if (response.ok && data.status) {
+        // Sync local React state without needing to refresh the page
         setHospitals((prev) => {
-          if (mode === "add") {
+          if (isAdd) {
             const newHosp = {
-              ...formData,
-              Id: response.id,
+              id: data.id,
               Name: formData.name,
+              State__r: { Name: formData.state },
+              District__r: { Name: formData.district },
+              Status__c: "Active",
             };
             return [newHosp, ...prev];
           }
+          // Update mode
           return prev.map((h) =>
-            h.Id === selectedEntityId
+            h.id === selectedEntityId
               ? {
                   ...h,
-                  Name: formData.name, // Ensure case matches your input name
-                  NPI_Id__c: formData.npi || "",
-                  Contact_Number__c: formData.contact || "", // Fixed typo here
-                  Address__c: formData.address || "",
-                  Email__c: formData.email || "",
-                  Image_URL__c: formData.image || "",
-                  State__c: formData.stateId || "",
-                  District__c: formData.districtId || "",
-                  "State__r.Name": formData.state || "",
-                  "District__r.Name": formData.district || "",
+                  Name: formData.name,
+                  State__r: { Name: formData.state },
+                  District__r: { Name: formData.district },
                 }
-              : h,
+              : h
           );
         });
 
         showToast({
           title: "Success",
-          message: "Hospital records synchronized.",
+          message: data.message || "Hospital records synchronized.",
           type: "success",
         });
 
         setTimeout(() => {
-          if (mode === "add") setFormData({});
+          if (mode === "add") {
+            setFormData({});
+            setSelectedState("");
+            setSelectedDistrict("");
+          }
           setSelectedEntityId("");
-        }, 3000);
+        }, 1000);
+      } else {
+        throw new Error(data.message || "Failed to save hospital.");
       }
     } catch (error) {
       showToast({
@@ -216,16 +193,19 @@ export default function Management() {
   };
 
   useEffect(() => {
-    setSelectedDistrict("");
-  }, [selectedState]);
+    if (mode === "add") setSelectedDistrict("");
+  }, [selectedState, mode]);
+
   const stateOptions = useMemo(
     () => Object.keys(locationData).sort(),
     [locationData],
   );
+  
   const districtOptions = useMemo(
     () => (selectedState ? (locationData[selectedState] || []).sort() : []),
     [selectedState, locationData],
   );
+
   return (
     <div
       className="max-w-5xl mx-auto space-y-12 py-8 fade-in min-h-screen"
@@ -276,7 +256,7 @@ export default function Management() {
               >
                 <option value="">-- Choose Hospital --</option>
                 {hospitals.map((h) => (
-                  <option key={h.Id} value={h.Id}>
+                  <option key={h.id} value={h.id}>
                     {h.Name}
                   </option>
                 ))}
@@ -303,7 +283,7 @@ export default function Management() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
                 name="name"
-                label="Hospital Name"
+                label="Hospital Name *"
                 placeholder="City General Hospital"
                 value={formData.name || ""}
                 onChange={handleInputChange}
@@ -332,7 +312,7 @@ export default function Management() {
               />
               <Input
                 name="email"
-                label="Email"
+                label="Email *"
                 placeholder="admin@medlock.com"
                 type="email"
                 value={formData.email || ""}
@@ -340,8 +320,8 @@ export default function Management() {
               />
 
               <SearchableSelect
-                label="State"
-                placeholder="state"
+                label="State *"
+                placeholder="Select State"
                 options={stateOptions}
                 value={formData.state || selectedState}
                 onChange={(val) => {
@@ -352,11 +332,11 @@ export default function Management() {
               <SearchableSelect
                 label="District"
                 options={districtOptions}
-                placeholder="district"
+                placeholder="Select District"
                 value={formData.district || selectedDistrict}
                 onChange={(val) => {
                   handleSelectChange("district", val);
-                  setSelectedState(val);
+                  setSelectedDistrict(val);
                 }}
               />
 
@@ -398,14 +378,16 @@ export default function Management() {
   );
 }
 
-// Reusable Components (Keep these exactly as provided in original)
+// Reusable Components
 function SearchableSelect({ label, placeholder, options, value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const containerRef = useRef(null);
+
   useEffect(() => {
-    setSearchTerm(value);
+    setSearchTerm(value || "");
   }, [value]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (containerRef.current && !containerRef.current.contains(event.target))
@@ -414,9 +396,11 @@ function SearchableSelect({ label, placeholder, options, value, onChange }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
   const filteredOptions = options.filter((opt) =>
     opt.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
   return (
     <div className="group relative" ref={containerRef}>
       <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest ml-1">
@@ -430,7 +414,6 @@ function SearchableSelect({ label, placeholder, options, value, onChange }) {
           onFocus={() => setIsOpen(true)}
           onChange={(e) => {
             setSearchTerm(e.target.value);
-            onChange(e.target.value);
             setIsOpen(true);
           }}
           className="w-full bg-slate-50 border-transparent rounded-2xl px-6 py-4 text-sm font-semibold outline-none focus:ring-4 focus:ring-secondary/10 transition-all border hover:bg-white text-gray-700"
@@ -466,14 +449,7 @@ function SearchableSelect({ label, placeholder, options, value, onChange }) {
   );
 }
 
-function Input({
-  label,
-  placeholder = "",
-  type = "text",
-  name,
-  value,
-  onChange,
-}) {
+function Input({ label, placeholder = "", type = "text", name, value, onChange }) {
   return (
     <div className="group">
       <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest ml-1">

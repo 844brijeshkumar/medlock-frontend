@@ -55,24 +55,16 @@ export const adminNavigation = [
         href: "/ad/management/hospital",
         icon: MagnifyingGlassIcon,
       },
-      { name: "Doctors", href: "/ad/management/doctor", icon: Contact2 },
-      {
-        name: "Receptionists",
-        href: "/ad/management/receptionist",
-        icon: Contact2,
-      },
+      { name: "Departments", href: "/ad/management/department", icon: Contact2 },
+      { name: "Staff", href: "/ad/management/staff", icon: Contact2 },
+
     ],
   },
   {
     name: "Transfer",
     icon: Users,
     subItems: [
-      { name: "Doctor", href: "/ad/transfer/doctor", icon: Package },
-      {
-        name: "Receptionist",
-        href: "/ad/transfer/receptionist",
-        icon: FileText,
-      },
+      { name: "Staff", href: "/ad/transfer/staff", icon: Package },
     ],
   },
 ];

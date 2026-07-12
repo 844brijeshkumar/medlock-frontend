@@ -1,289 +1,288 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Hospital as HospitalIcon,
-  ArrowRight,
-  CheckCircle2,
-  Building2,
-  ChevronDown,
-  Search,
-  IdCard,
-  User,
   ArrowLeftRight,
+  ArrowRight,
+  Building2,
+  Layers,
+  User,
+  ChevronDown,
   Stethoscope,
+  Activity
 } from "lucide-react";
-import {
-  getDoctorForAdmin,
-  getHospitalForAdmin,
-  transferDoctor,
-} from "../../../../api/auth";
 import { useToast } from "../../../../utils/ToastContext";
 
-export default function Transfer() {
+export default function StaffTransfer() {
+  // Transfer Form States
+  const [selectedRole, setSelectedRole] = useState("");
   const [selectedStaffId, setSelectedStaffId] = useState("");
-  const [targetBranchId, setTargetBranchId] = useState("");
+  const [targetHospitalId, setTargetHospitalId] = useState("");
+  const [targetDepartmentId, setTargetDepartmentId] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const { showToast } = useToast();
 
+  // Data States
   const [hospitals, setHospitals] = useState([]);
-  const [doctors, setDoctors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const theme = useMemo(
-    () => ({
-      primary: "#0b4f4a",
-      secondary: "#2a9b94",
-      accent: "#d1e8e5",
-    }),
-    [],
-  );
+  const [departments, setDepartments] = useState([]);
+  const [staffList, setStaffList] = useState([]);
+  
+  const { showToast } = useToast();
+  const theme = useMemo(() => ({ primary: "#0b4f4a", secondary: "#2a9b94", accent: "#d1e8e5" }), []);
+
+  const roleConfig = {
+    doctor: { title: "Doctor", icon: Stethoscope },
+    nurse: { title: "Nurse", icon: Activity },
+    receptionist: { title: "Receptionist", icon: User },
+  };
+
+  // 1. Fetch Hospitals and Departments on mount
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    const fetchInfrastructure = async () => {
+      const token = localStorage.getItem("token");
       try {
-        const token = localStorage.getItem("token");
-
-        // Fetch both doctors and hospitals (adjust endpoints to your actual routes)
-        const [docRes, hospRes] = await Promise.all([
-          getDoctorForAdmin(token),
-          getHospitalForAdmin(token),
+        const [hRes, dRes] = await Promise.all([
+          fetch("http://127.0.0.1:8000/api/ad/branches/", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("http://127.0.0.1:8000/api/ad/manage/departments/", { headers: { Authorization: `Bearer ${token}` } })
         ]);
-
-        if (docRes.status) setDoctors(docRes.doctors);
-        if (hospRes.status) setHospitals(hospRes.hospitals);
+        
+        const hData = await hRes.json();
+        const dData = await dRes.json();
+        
+        if (hRes.ok) setHospitals(hData.hospitals || []);
+        if (dRes.ok) setDepartments(dData.departments || []);
       } catch (err) {
-        console.error("Failed to load transfer data:", err);
-      } finally {
-        setLoading(false);
+        console.error("Failed to load infrastructure data:", err);
       }
     };
-
-    fetchData();
+    fetchInfrastructure();
   }, []);
 
-  // Filter only Doctors
-  // Filter doctors from the live state
-  const staffList = doctors;
-
-  // Find the selected doctor and their current location
-  const selectedStaff = staffList.find((s) => s.Id === selectedStaffId);
-  const currentHospital = hospitals.find(
-    (h) => h.Id === selectedStaff?.Hospital__c,
-  );
-
-  // Filter out the current hospital so they can't transfer to the same place
-  const availableHospitals = hospitals.filter(
-    (h) => h.Id !== selectedStaff?.Hospital__c,
-  );
-
+  // 2. Fetch Staff dynamically when Role changes
   useEffect(() => {
-    setTargetBranchId("");
-  }, [selectedStaffId]);
+    if (selectedRole) {
+      const fetchStaff = async () => {
+        const token = localStorage.getItem("token");
+        try {
+          const res = await fetch(`http://127.0.0.1:8000/api/ad/manage/staff/?role=${selectedRole}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (res.ok) setStaffList(data.staff || []);
+        } catch (err) {
+          console.error("Failed to load staff:", err);
+        }
+      };
+      fetchStaff();
+    } else {
+      setStaffList([]);
+    }
+    
+    // Reset downward selections
+    setSelectedStaffId("");
+  }, [selectedRole]);
+
+  // Handle cascading resets
+  useEffect(() => {
+    setTargetDepartmentId("");
+  }, [targetHospitalId]);
+
+  // Derived Selection Data (To show Current Location)
+  const selectedStaff = staffList.find(s => String(s.id) === String(selectedStaffId));
+  const currentDept = departments.find(d => String(d.id) === String(selectedStaff?.department_id));
+  const currentHosp = hospitals.find(h => String(h.id) === (String(currentDept?.hospital_id) || String(selectedStaff?.hospital_id)));
+
+  // Filter available destination departments based on chosen destination hospital
+  const filteredDepartments = departments.filter(d => String(d.hospital_id) === String(targetHospitalId));
 
   const handleTransfer = async (e) => {
     e.preventDefault();
-    if (!selectedStaffId || !targetBranchId) return;
+    if (!selectedStaffId || !targetDepartmentId || !selectedRole) {
+        showToast({ title: "Incomplete", message: "Please complete all selections.", type: "warning" });
+        return;
+    }
+
+    // Prevent transferring to the exact same department
+    if (String(targetDepartmentId) === String(selectedStaff.department_id)) {
+        showToast({ title: "Invalid Transfer", message: "Staff is already in this department.", type: "warning" });
+        return;
+    }
 
     setIsProcessing(true);
-    const data = {
-      doctorId: selectedStaffId, // The Salesforce ID of the doctor
-      newHospitalId: targetBranchId, // The Salesforce ID of the new branch
-    };
     try {
-      const token = localStorage.getItem("token"); // Assuming your token is stored here
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://127.0.0.1:8000/api/ad/transfer/staff/", {
+        method: "POST",
+        headers: { 
+            "Authorization": `Bearer ${token}`, 
+            "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({
+          role: selectedRole,
+          staff_id: selectedStaffId,
+          new_department_id: targetDepartmentId
+        }),
+      });
 
-      const response = await transferDoctor(token, data);
+      const data = await response.json();
 
-      if (response.status) {
-        showToast({
-          title: "Success",
-          message: "Transfer Successful",
-          type: "success",
-        });
-        // Reset form after success
-        setTimeout(() => {
-          setSelectedStaffId("");
-          setTargetBranchId("");
-          setDoctors((prevDoctors) =>
-            prevDoctors.map((doc) =>
-              doc.Id === selectedStaffId
-                ? { ...doc, Hospital__c: targetBranchId } // Update to the new branch locally
-                : doc,
-            ),
-          );
-        }, 200);
+      if (response.ok && data.status) {
+        showToast({ title: "Success", message: data.message, type: "success" });
+        
+        // Remove staff from current view or trigger a re-fetch here if needed
+        setSelectedStaffId("");
+        setTargetHospitalId("");
+        setTargetDepartmentId("");
+        
+        // Locally update the staff list to reflect the change immediately
+        setStaffList(prev => prev.map(s => String(s.id) === String(selectedStaffId) ? { ...s, department_id: targetDepartmentId } : s));
+
       } else {
-        showToast({
-          title: "Error",
-          message: "Transfer failed. Please try again.",
-          type: "error",
-        });
+        throw new Error(data.message || "Transfer failed.");
       }
     } catch (error) {
-      console.error("Transfer Error:", error);
+      showToast({ title: "Error", message: error.message, type: "error" });
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div
-      className="max-w-5xl mx-auto space-y-12 py-8 fade-in min-h-screen"
-      style={{
-        "--primary": theme.primary,
-        "--secondary": theme.secondary,
-        "--accent": theme.accent,
-      }}
-    >
+    <div className="max-w-5xl mx-auto space-y-12 py-8 fade-in min-h-screen" style={{ "--primary": theme.primary, "--secondary": theme.secondary }}>
+      
       {/* Header */}
       <div className="text-center space-y-3">
-        <h2 className="text-4xl font-black tracking-tight text-primary">
-          Doctor Reassignment
-        </h2>
-        <p className="text-slate-500 font-medium">
-          Transfer medical practitioners to different branch locations within
-          the network.
-        </p>
+        <h2 className="text-4xl font-black tracking-tight text-primary">Staff Reassignment</h2>
+        <p className="text-slate-500 font-medium">Seamlessly transfer personnel between branches and internal departments.</p>
       </div>
 
-      {/* Main Card */}
-      <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-xl shadow-secondary/5 p-10 animate-in fade-in slide-in-from-bottom-6 relative overflow-hidden">
+      <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-xl p-10 relative overflow-hidden">
         <form onSubmit={handleTransfer} className="space-y-10">
-          {/* Section Header */}
+          
           <div className="flex items-center gap-4 pb-6 border-b border-gray-100">
             <div className="p-4 bg-accent/30 text-secondary rounded-2xl shadow-sm">
               <ArrowLeftRight size={28} strokeWidth={1.5} />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-primary">
-                Transfer Details
-              </h2>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
-                Select Doctor and Destination
-              </p>
+              <h2 className="text-2xl font-black text-primary">Transfer Details</h2>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Select Member and Destination</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Member Search */}
+            
+            {/* LEFT COLUMN: STAFF SELECTION */}
             <div className="space-y-6">
-              <SearchableSelect
-                label="Search by Name or Doctor ID"
-                placeholder="Type ID or Name..."
-                options={staffList.map((s) => ({
-                  id: s.Id,
-                  label: s.Name,
-                  sub: s.Doctor_Id__c,
-                  detail: s.Specialization__c || "General",
-                }))}
-                value={selectedStaffId}
-                onChange={setSelectedStaffId}
-              />
-
-              {/* Selection Preview */}
+              
+              {/* Role Select */}
               <div className="group">
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest ml-1">
-                  Doctor Profile
-                </label>
+                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest ml-1">1. Select Role Category</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 size-5" />
+                  <select
+                    className="w-full bg-slate-50 border-transparent rounded-2xl pl-12 pr-4 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-secondary/10 transition-all border hover:bg-white cursor-pointer appearance-none text-gray-700"
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                  >
+                    <option value="">-- Choose Role --</option>
+                    <option value="doctor">Doctors</option>
+                    <option value="nurse">Nurses</option>
+                    <option value="receptionist">Receptionists</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                </div>
+              </div>
+
+              {/* Staff Select */}
+              <div className={`transition-all duration-300 ${!selectedRole ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest ml-1">2. Select {roleConfig[selectedRole]?.title || 'Staff Member'}</label>
+                <div className="relative">
+                  <select
+                    className="w-full bg-slate-50 border-transparent rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-secondary/10 transition-all border hover:bg-white cursor-pointer"
+                    value={selectedStaffId}
+                    onChange={(e) => setSelectedStaffId(e.target.value)}
+                  >
+                    <option value="">-- Choose Member --</option>
+                    {staffList.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name} (ID: {s.punch_id})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Current Location Preview */}
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest ml-1">Current Assignment</label>
                 {selectedStaff ? (
-                  <div className="h-[90px] bg-slate-50 border border-slate-100 rounded-2xl px-6 flex items-center gap-4 animate-in fade-in slide-in-from-right-4 transition-all hover:border-secondary/30">
-                    <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-secondary shadow-sm">
-                      <User size={24} />
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 flex items-center gap-4 animate-in fade-in transition-all">
+                    <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+                      <Building2 size={24} />
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-slate-900 leading-none">
-                        {selectedStaff.Name}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[10px] font-black text-white bg-secondary px-2 py-0.5 rounded uppercase">
-                          {selectedStaff.Doctor_Id__c}
-                        </span>
-                        <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
-                          <Stethoscope size={12} />{" "}
-                          {selectedStaff.Specialization__c}
-                        </span>
-                      </div>
+                      <h4 className="text-sm font-bold text-slate-900 leading-tight">{currentHosp?.name || currentHosp?.Name || "Unknown Hospital"}</h4>
+                      <p className="text-xs font-bold text-slate-400 mt-1 flex items-center gap-1">
+                        <Layers size={12}/> {currentDept?.name || "Unknown Department"}
+                      </p>
                     </div>
                   </div>
                 ) : (
                   <div className="h-[90px] bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 text-xs font-bold uppercase tracking-widest">
-                    Awaiting Doctor Selection
+                    Awaiting Selection
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Transfer Symmetry Section */}
-            <div
-              className={`flex flex-col justify-between transition-all duration-500 ${!selectedStaffId ? "opacity-30 pointer-events-none grayscale" : "opacity-100"}`}
-            >
-              <div className="space-y-6">
-                {/* Current Branch Display */}
+            {/* RIGHT COLUMN: TARGET DESTINATION */}
+            <div className={`flex flex-col justify-end space-y-6 transition-all duration-500 ${!selectedStaffId ? "opacity-30 pointer-events-none grayscale" : ""}`}>
+              
+              <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100 space-y-6">
+                <h3 className="text-xs font-black uppercase text-emerald-600 tracking-widest flex items-center gap-2">
+                  <ArrowRight size={14} /> New Destination
+                </h3>
+                
+                {/* Target Hospital Select */}
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-2">
-                    Current Branch
-                  </label>
-                  <div className="bg-red-50 p-5 rounded-2xl border border-red-100 h-[80px] flex flex-col justify-center relative overflow-hidden group hover:border-red-200 transition-colors">
-                    <div className="absolute right-0 top-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                      <HospitalIcon size={60} className="text-red-500" />
-                    </div>
-                    <div className="flex items-center gap-3 relative z-10">
-                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-sm font-bold text-red-900 truncate">
-                        {currentHospital?.Name || "---"}
-                      </span>
-                    </div>
-                    <p className="text-[10px] font-bold text-red-400 ml-5 uppercase mt-1">
-                      {currentHospital?.State__r.Name || "---"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Arrow Indicator */}
-                <div className="flex justify-center -my-3 relative z-10">
-                  <div className="bg-white p-2 rounded-full shadow-lg border border-slate-100 text-secondary">
-                    <ArrowRight
-                      size={20}
-                      strokeWidth={3}
-                      className="rotate-90 md:rotate-0"
-                    />
-                  </div>
-                </div>
-
-                {/* Target Branch Select */}
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-2">
-                    Target Branch
-                  </label>
+                  <label className="block text-[10px] font-black uppercase text-emerald-600/70 mb-2 tracking-widest ml-1">Target Branch</label>
                   <div className="relative group">
-                    <Building2
-                      className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600/50 group-focus-within:text-emerald-600 transition-colors"
-                      size={20}
-                    />
+                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600/50 size-5" />
                     <select
-                      className="w-full bg-emerald-50 border-emerald-100 rounded-2xl pl-14 pr-10 h-[80px] text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-100 transition-all border appearance-none text-emerald-900 cursor-pointer hover:border-emerald-200"
-                      value={targetBranchId}
-                      onChange={(e) => setTargetBranchId(e.target.value)}
+                      className="w-full bg-white border-emerald-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-emerald-900 cursor-pointer appearance-none"
+                      value={targetHospitalId}
+                      onChange={(e) => setTargetHospitalId(e.target.value)}
                     >
-                      <option value="" disabled>
-                        Select Destination...
-                      </option>
-                      {availableHospitals?.map((h, index) => (
-                        <option key={index} value={h.Id}>
-                          {h.Name}
-                        </option>
+                      <option value="">-- Select Destination Branch --</option>
+                      {hospitals.map((h) => (
+                        <option key={h.id || h.Id} value={h.id || h.Id}>{h.name || h.Name}</option>
                       ))}
                     </select>
-                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-400">
-                      <ChevronDown size={20} />
-                    </div>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-600/50 pointer-events-none" size={18} />
+                  </div>
+                </div>
+
+                {/* Target Department Select */}
+                <div className={`transition-all duration-300 ${!targetHospitalId ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+                  <label className="block text-[10px] font-black uppercase text-emerald-600/70 mb-2 tracking-widest ml-1">Target Department</label>
+                  <div className="relative group">
+                    <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600/50 size-5" />
+                    <select
+                      className="w-full bg-white border-emerald-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-emerald-900 cursor-pointer appearance-none"
+                      value={targetDepartmentId}
+                      onChange={(e) => setTargetDepartmentId(e.target.value)}
+                    >
+                      <option value="">{targetHospitalId ? "-- Select Destination Department --" : "Select Branch First"}</option>
+                      {filteredDepartments.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-600/50 pointer-events-none" size={18} />
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
 
           <SubmitButton
-            label={isProcessing ? "Processing Transfer..." : "Confirm Transfer"}
-            disabled={!targetBranchId || isProcessing}
+            label={isProcessing ? "Executing Transfer..." : "Confirm Staff Transfer"}
+            disabled={!targetDepartmentId || isProcessing}
           />
         </form>
       </div>
@@ -291,118 +290,22 @@ export default function Transfer() {
   );
 }
 
-// --- Reused Components ---
-
-function SearchableSelect({ label, placeholder, options, value, onChange }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const containerRef = useRef(null);
-  const selectedOption = options.find((o) => o.id === value);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target))
-        setIsOpen(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const filteredOptions = options?.filter(
-    (opt) =>
-      opt?.label?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      opt?.sub?.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  return (
-    <div className="group relative" ref={containerRef}>
-      <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest group-focus-within:text-secondary transition-colors ml-1">
-        {label}
-      </label>
-      <div
-        className={`w-full bg-slate-50 border-transparent rounded-2xl px-6 py-4 text-sm font-semibold outline-none transition-all border hover:bg-white hover:border-secondary/20 hover:shadow-sm flex items-center justify-between cursor-pointer ${isOpen ? "ring-4 ring-secondary/10 border-secondary" : ""}`}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <span className={value ? "text-slate-900" : "text-slate-300"}>
-          {value
-            ? `${selectedOption.label} (${selectedOption.sub})`
-            : placeholder}
-        </span>
-        <ChevronDown
-          size={18}
-          className={`text-slate-400 transition-transform ${isOpen ? "rotate-180 text-secondary" : ""}`}
-        />
-      </div>
-
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="p-2 border-b border-slate-50">
-            <input
-              autoFocus
-              className="w-full bg-slate-50 rounded-xl px-4 py-2 text-sm outline-none font-bold placeholder:text-slate-300 text-slate-700"
-              placeholder="Filter names or IDs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-          <div className="max-h-60 overflow-y-auto p-1">
-            {filteredOptions.length > 0 ? (
-              filteredOptions?.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onChange(opt.id);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex flex-col gap-0.5 ${
-                    value === opt.id
-                      ? "bg-accent/30 text-primary"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex justify-between items-center w-full">
-                    <span>{opt.label}</span>
-                    <span className="text-[9px] font-black text-slate-400 bg-white/50 px-1.5 py-0.5 rounded uppercase">
-                      {opt.sub}
-                    </span>
-                  </div>
-                  <span className="text-[10px] uppercase opacity-40 tracking-tight font-semibold">
-                    {opt.detail}
-                  </span>
-                </button>
-              ))
-            ) : (
-              <div className="p-4 text-center text-xs text-slate-400 font-bold uppercase">
-                No records found
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
+// Reusable Button Component
 function SubmitButton({ label, disabled }) {
   return (
     <button
       type="submit"
       disabled={disabled}
-      className={`w-full py-4 rounded-2xl font-black transition-all shadow-lg flex items-center justify-center gap-2 uppercase tracking-widest text-sm group ${
+      className={`w-full py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-sm group ${
         disabled
-          ? "bg-slate-100 text-slate-300 cursor-not-allowed shadow-none"
-          : "bg-gradient-to-r from-primary to-secondary text-white hover:scale-[1.01] active:scale-[0.99] shadow-secondary/20"
+          ? "bg-slate-100 text-slate-300 cursor-not-allowed border border-slate-200"
+          : "bg-gradient-to-r from-primary to-secondary text-white hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-secondary/20"
       }`}
     >
       {label}{" "}
       <ArrowRight
         size={18}
-        className={
-          !disabled ? "group-hover:translate-x-1 transition-transform" : ""
-        }
+        className={!disabled ? "group-hover:translate-x-1 transition-transform" : ""}
       />
     </button>
   );

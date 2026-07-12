@@ -10,40 +10,15 @@ import {
   ArrowRight,
   Filter,
 } from "lucide-react";
-import { getHospitalForAdmin } from "../../../api/auth";
-
-// --- MOCK DATA ---
-const INITIAL_HOSPITALS = [
-  {
-    id: "h1",
-    name: "Apollo Hospitals",
-    location: "Greams Road, Chennai",
-    status: "Active",
-    reports: 1240,
-    doctors: 45,
-    receptionists: 12,
-    growth: "14.2%",
-    npi: "982344120",
-  },
-  {
-    id: "h2",
-    name: "City Diagnostic Center & Research Institute", // Long name example
-    location: "Indiranagar, Bangalore",
-    status: "Active",
-    reports: 890,
-    doctors: 20,
-    receptionists: 8,
-    growth: "9.5%",
-    npi: "110293844",
-  },
-  // ... other data
-];
-const token = localStorage.getItem("token");
 
 export default function BranchList() {
   const [filter, setFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const [hospitalData, setHospitalData] = useState();
+  const [hospitalData, setHospitalData] = useState([]);
+  
+  // Added Loading & Error States based on your new pattern
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // --- THEME CONFIGURATION ---
   const theme = useMemo(
@@ -55,20 +30,52 @@ export default function BranchList() {
     [],
   );
 
+  // --- API FETCH LOGIC ---
   useEffect(() => {
-    const loadHospitals = async () => {
-      const data = await getHospitalForAdmin(token);
-      setHospitalData(data?.hospitals);
+    const fetchHospitalsData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // 1. Get the JWT token from storage inside the function
+        const token = localStorage.getItem("token"); 
+        if (!token) throw new Error("No authentication token found.");
+
+        // 2. Make the API Call to Django
+        const response = await fetch(`http://127.0.0.1:8000/api/ad/branches/`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch branch data");
+        }
+
+        const data = await response.json();
+        
+        // 3. Populate the UI with backend data
+        setHospitalData(data.hospitals || []);
+        
+      } catch (err) {
+        console.error("Branch fetch error:", err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    loadHospitals();
+
+    fetchHospitalsData();
   }, []);
 
   // Filter Logic
   const filteredHospitals = hospitalData?.filter((h) => {
     const matchesFilter = filter === "All" || h.Status__c === filter;
     const matchesSearch =
-      h.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      h.District__r?.Name.toLowerCase().includes(searchTerm.toLowerCase());
+      h.Name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      h.District__r?.Name?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -81,7 +88,6 @@ export default function BranchList() {
         "--accent": theme.accent,
       }}
     >
-      {/* 1. Add Marquee Keyframes */}
       <style>{`
         @keyframes marquee {
           0% { transform: translateX(0%); }
@@ -90,7 +96,6 @@ export default function BranchList() {
         .animate-marquee {
           animation: marquee 10s linear infinite;
         }
-        /* Pause animation when not hovering if preferred, currently set to animate on hover only via group-hover logic below */
       `}</style>
 
       {/* --- HERO SECTION --- */}
@@ -178,9 +183,18 @@ export default function BranchList() {
         </div>
       </div>
 
-      {/* --- BRANCH GRID --- */}
+      {/* --- BRANCH GRID / STATES --- */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 mt-12">
-        {filteredHospitals?.length > 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Activity className="animate-spin text-primary" size={48} />
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 text-red-600 rounded-3xl p-10 text-center border border-red-200">
+            <h3 className="text-xl font-bold mb-2">Failed to load branches</h3>
+            <p>{error}</p>
+          </div>
+        ) : filteredHospitals?.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {filteredHospitals?.map((h, index) => (
               <div
@@ -212,7 +226,6 @@ export default function BranchList() {
 
                     {/* --- MARQUEE CONTAINER FOR HOSPITAL NAME --- */}
                     <div className="flex-1 min-w-0 overflow-hidden">
-                      {/* Flex container holding duplicated names for loop */}
                       <div className="flex w-max group-hover:animate-marquee">
                         <h3 className="font-black text-2xl text-gray-900 group-hover:text-primary transition-colors pr-10">
                           {h.Name}

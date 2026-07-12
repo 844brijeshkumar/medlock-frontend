@@ -92,21 +92,18 @@ const ManagementHospital = lazy(
   () => import("../pages/Admin/Dashboard/Management"),
 );
 
-const TransferDoctor = lazy(
+const TransferStaff = lazy(
   () => import("../pages/Admin/Dashboard/Transfer"),
 );
 
-const ManagementDoctor = lazy(
-  () => import("../pages/Admin/Dashboard/Management/Doctors.jsx"),
+const ManagementStaff = lazy(
+  () => import("../pages/Admin/Dashboard/Management/Staff.jsx"),
 );
 
-const ManagementReceptionist = lazy(
-  () => import("../pages/Admin/Dashboard/Management/Receptionists.jsx"),
+const ManagementDepartment = lazy(
+  () => import("../pages/Admin/Dashboard/Management/Department.jsx"),
 );
 
-const Receptionist = lazy(
-  () => import("../pages/Admin/Dashboard/Transfer/Receptionist.jsx"),
-);
 
 const AdminSelection = lazy(
   () => import("../pages/Patient/Dashboard/AdminSelection.jsx"),
@@ -436,39 +433,29 @@ const router = createBrowserRouter([
       </Layout>
     ),
   },
-
   {
-    path: "/ad/management/doctor",
+    path: "/ad/management/department",
     element: (
       <Layout navigation={adminNavigation} name={admin}>
-        <ManagementDoctor />
+        <ManagementDepartment />
       </Layout>
     ),
   },
 
   {
-    path: "/ad/management/receptionist",
+    path: "/ad/management/staff",
     element: (
       <Layout navigation={adminNavigation} name={admin}>
-        <ManagementReceptionist />
+        <ManagementStaff />
       </Layout>
     ),
   },
 
   {
-    path: "/ad/transfer/doctor",
+    path: "/ad/transfer/staff",
     element: (
       <Layout navigation={adminNavigation} name={admin}>
-        <TransferDoctor />
-      </Layout>
-    ),
-  },
-
-  {
-    path: "/ad/transfer/receptionist",
-    element: (
-      <Layout navigation={adminNavigation} name={admin}>
-        <Receptionist />
+        <TransferStaff />
       </Layout>
     ),
   },
