@@ -164,6 +164,10 @@ const AdminDashboard = lazy(
   () => import("../pages/Admin/Dashboard"),
 );
 
+const AdminSubscription = lazy(
+  () => import("../pages/Admin/Dashboard/Subscription.jsx"),
+);
+
 const HospitalDashboard = lazy(
   () => import("../pages/Hospital/Dashboard"),
 );
@@ -403,6 +407,15 @@ const router = createBrowserRouter([
     element: (
       <Layout navigation={adminNavigation} name={admin}>
         <AdminDashboard />
+      </Layout>
+    ),
+  },
+
+  {
+    path: "/ad/subscription",
+    element: (
+      <Layout navigation={adminNavigation} name={admin}>
+        <AdminSubscription />
       </Layout>
     ),
   },

@@ -43,8 +43,8 @@ export default function Departments() {
         const hospData = await hospRes.json();
         if (hospRes.ok) setHospitals(hospData.hospitals || []);
 
-        // Fetch Departments
-        const deptRes = await fetch("http://127.0.0.1:8000/api/ad/departments/manage/", {
+        // Fetch Departments (FIXED: Added trailing slash)
+        const deptRes = await fetch("http://127.0.0.1:8000/api/ad/manage/departments/", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const deptData = await deptRes.json();
@@ -215,7 +215,7 @@ export default function Departments() {
         {mode === "update" && (
           <div className="mb-10 space-y-6 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-secondary/30 transition-colors">
+              <div className="p-8 bg-slate-50 rounded-[2rem]  border border-slate-100 group hover:border-secondary/30 transition-colors">
                 <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest group-hover:text-primary transition-colors">
                   Step 1: Select Hospital Branch
                 </label>
@@ -230,7 +230,7 @@ export default function Departments() {
                   <option value="">-- Choose Branch --</option>
                   {hospitals.map((h) => (
                     <option key={h.id} value={h.id}>
-                      {h.Name}
+                      {h.name}
                     </option>
                   ))}
                 </select>
@@ -289,7 +289,7 @@ export default function Departments() {
                       <option value="">Select Branch</option>
                       {hospitals.map((h) => (
                         <option key={h.id} value={h.id}>
-                          {h.Name}
+                          {h.name} {/* FIXED: Changed from h.Name */}
                         </option>
                       ))}
                     </select>

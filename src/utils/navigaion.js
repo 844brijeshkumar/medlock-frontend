@@ -57,7 +57,6 @@ export const adminNavigation = [
       },
       { name: "Departments", href: "/ad/management/department", icon: Contact2 },
       { name: "Staff", href: "/ad/management/staff", icon: Contact2 },
-
     ],
   },
   {
@@ -67,6 +66,8 @@ export const adminNavigation = [
       { name: "Staff", href: "/ad/transfer/staff", icon: Package },
     ],
   },
+
+  { name: "Branch", href: "/ad/subscription", icon: Building2 },
 ];
 
 export const doctorNavigation = [
