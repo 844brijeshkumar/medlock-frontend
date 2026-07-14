@@ -32,7 +32,7 @@ export default function Login() {
     return {
       name: prefix,
       role: prefix,
-      dashboardRoute: `/${prefix.toLowerCase()}/dashboard`,
+      dashboardRoute: `/${prefix.toLowerCase()}-dashboard`,
     };
   };
 

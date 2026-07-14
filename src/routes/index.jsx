@@ -3,14 +3,6 @@ import { lazy } from "react";
 import Layout from "../components/Layout/index.jsx";
 import HomeLayout from "../components/HomeLayout/index.jsx";
 
-import {
-  doctorNavigation,
-  hospitalNavigation,
-  patientNavigation,
-  receptionistNavigation,
-  adminNavigation,
-} from "../utils/navigaion.js";
-
 import PhlebotomyDashboard from "../pages/Donation/Dashboard/Collecting.jsx";
 import AnalyticsCommandCenter from "../pages/Donation/Dashboard/Collection.jsx";
 import Bed from "../pages/Depertment/Dashboard/Bed.jsx";
@@ -207,17 +199,17 @@ const router = createBrowserRouter([
 
   // --- INTERNAL DASHBOARDS AND OTHER ROUTES ---
   {
-    path: "/dp/bed",
+    path: "/bed",
     element: <Bed />,
   },
 
   {
-    path: "/dp/add-event/:patientId/:bedId",
+    path: "/add-event/:patientId/:bedId",
     element: <AddEvent />,
   },
 
   {
-    path: "/dp/view-event/:patientId/:bedId",
+    path: "/view-event/:patientId/:bedId",
     element: <ViewEvent />,
   },
 
@@ -229,7 +221,7 @@ const router = createBrowserRouter([
   {
     path: "/patient/dashboard",
     element: (
-      <Layout navigation={patientNavigation} name={patient}>
+      <Layout name={patient}>
         <PatientDashboard />
       </Layout>
     ),
@@ -238,7 +230,7 @@ const router = createBrowserRouter([
   {
     path: "/patient/report",
     element: (
-      <Layout navigation={patientNavigation} name={patient}>
+      <Layout name={patient}>
         <MedicalHistory />
       </Layout>
     ),
@@ -247,7 +239,7 @@ const router = createBrowserRouter([
   {
     path: "/patient/appointment-booking",
     element: (
-      <Layout navigation={patientNavigation} name={patient}>
+      <Layout name={patient}>
         <AppointmentBooking />
       </Layout>
     ),
@@ -256,7 +248,7 @@ const router = createBrowserRouter([
   {
     path: "/patient/my-appointment",
     element: (
-      <Layout navigation={patientNavigation} name={patient}>
+      <Layout name={patient}>
         <MyAppointment />
       </Layout>
     ),
@@ -265,7 +257,7 @@ const router = createBrowserRouter([
   {
     path: "/patient/my-insurance",
     element: (
-      <Layout navigation={patientNavigation} name={patient}>
+      <Layout name={patient}>
         <MyInsurance />
       </Layout>
     ),
@@ -274,7 +266,7 @@ const router = createBrowserRouter([
   {
     path: "/patient/my-donation",
     element: (
-      <Layout navigation={patientNavigation} name={patient}>
+      <Layout name={patient}>
         <MyDonation />
       </Layout>
     ),
@@ -283,7 +275,7 @@ const router = createBrowserRouter([
   {
     path: "/patient/book-donation",
     element: (
-      <Layout navigation={patientNavigation} name={patient}>
+      <Layout name={patient}>
         <BookDonation />
       </Layout>
     ),
@@ -297,70 +289,70 @@ const router = createBrowserRouter([
   {
     path: "/patient/settings",
     element: (
-      <Layout navigation={patientNavigation} name={patient}>
+      <Layout name={patient}>
         <PatientSettingsPage />
       </Layout>
     ),
   },
 
   {
-    path: "/dr/dashboard",
+    path: "/dr-dashboard",
     element: (
-      <Layout navigation={doctorNavigation} name={doctor}>
+      <Layout name={doctor}>
         <DoctorDashboard />
       </Layout>
     ),
   },
 
   {
-    path: "/dr/insurance",
+    path: "/clinical-ins-dashboard",
     element: (
-      <Layout navigation={doctorNavigation} name={doctor}>
+      <Layout name={doctor}>
         <Insurance />
       </Layout>
     ),
   },
 
   {
-    path: "/dr/status",
+    path: "/clinical-ins-status",
     element: (
-      <Layout navigation={doctorNavigation} name={doctor}>
+      <Layout name={doctor}>
         <DoctorStatus />
       </Layout>
     ),
   },
 
   {
-    path: "/dr/report-upload",
+    path: "/report-upload",
     element: (
-      <Layout navigation={doctorNavigation} name={doctor}>
+      <Layout name={doctor}>
         <ReportUpload />
       </Layout>
     ),
   },
 
   {
-    path: "/dr/patient",
+    path: "/patient-lookup",
     element: (
-      <Layout navigation={doctorNavigation} name={doctor}>
+      <Layout name={doctor}>
         <PatientLookUp />
       </Layout>
     ),
   },
 
   {
-    path: "/dr/assign-report",
+    path: "/assign-report",
     element: (
-      <Layout navigation={doctorNavigation} name={doctor}>
+      <Layout name={doctor}>
         <AssignReport />
       </Layout>
     ),
   },
 
   {
-    path: "/hp/dashboard",
+    path: "/hp-dashboard",
     element: (
-      <Layout navigation={hospitalNavigation} name={hospital}>
+      <Layout name={hospital}>
         <HospitalDashboard />
       </Layout>
     ),
@@ -369,7 +361,7 @@ const router = createBrowserRouter([
   {
     path: "/hp/doctor-form",
     element: (
-      <Layout navigation={hospitalNavigation} name={hospital}>
+      <Layout name={hospital}>
         <DoctorsSection />
       </Layout>
     ),
@@ -378,7 +370,7 @@ const router = createBrowserRouter([
   {
     path: "/hp/receptionist-form",
     element: (
-      <Layout navigation={hospitalNavigation} name={hospital}>
+      <Layout name={hospital}>
         <ReceptionistSection />
       </Layout>
     ),
@@ -387,7 +379,7 @@ const router = createBrowserRouter([
   {
     path: "/hp/reports",
     element: (
-      <Layout navigation={hospitalNavigation} name={hospital}>
+      <Layout name={hospital}>
         <ReportsSection />
       </Layout>
     ),
@@ -396,141 +388,141 @@ const router = createBrowserRouter([
   {
     path: "/hp/profile",
     element: (
-      <Layout navigation={hospitalNavigation} name={hospital}>
+      <Layout name={hospital}>
         <ProfileSection />
       </Layout>
     ),
   },
 
   {
-    path: "/ad/dashboard",
+    path: "/ad-dashboard",
     element: (
-      <Layout navigation={adminNavigation} name={admin}>
+      <Layout name={admin}>
         <AdminDashboard />
       </Layout>
     ),
   },
 
   {
-    path: "/ad/subscription",
+    path: "/subscription",
     element: (
-      <Layout navigation={adminNavigation} name={admin}>
+      <Layout name={admin}>
         <AdminSubscription />
       </Layout>
     ),
   },
 
   {
-    path: "/ad/charges",
+    path: "/charges",
     element: (
-      <Layout navigation={adminNavigation} name={admin}>
+      <Layout name={admin}>
         <DepartmentCharges />
       </Layout>
     ),
   },
 
   {
-    path: "/ad/branch",
+    path: "/branch",
     element: (
-      <Layout navigation={adminNavigation} name={admin}>
+      <Layout name={admin}>
         <BranchList />
       </Layout>
     ),
   },
 
   {
-    path: "/ad/management/hospital",
+    path: "/management/hospital",
     element: (
-      <Layout navigation={adminNavigation} name={admin}>
+      <Layout name={admin}>
         <ManagementHospital />
       </Layout>
     ),
   },
   {
-    path: "/ad/management/department",
+    path: "/management/department",
     element: (
-      <Layout navigation={adminNavigation} name={admin}>
+      <Layout name={admin}>
         <ManagementDepartment />
       </Layout>
     ),
   },
 
   {
-    path: "/ad/management/staff",
+    path: "/management/staff",
     element: (
-      <Layout navigation={adminNavigation} name={admin}>
+      <Layout name={admin}>
         <ManagementStaff />
       </Layout>
     ),
   },
 
   {
-    path: "/ad/transfer/staff",
+    path: "/transfer/staff",
     element: (
-      <Layout navigation={adminNavigation} name={admin}>
+      <Layout name={admin}>
         <TransferStaff />
       </Layout>
     ),
   },
 
   {
-    path: "/rs/dashboard",
+    path: "/rs-dashboard",
     element: (
-      <Layout navigation={receptionistNavigation} name={receptionist}>
+      <Layout name={receptionist}>
         <ReceptionistDashboard />
       </Layout>
     ),
   },
 
   {
-    path: "/rs/billing",
+    path: "/adminal-billing",
     element: (
-      <Layout navigation={receptionistNavigation} name={receptionist}>
+      <Layout name={receptionist}>
         <ReceptionistBilling />
       </Layout>
     ),
   },
 
   {
-    path: "/rs/claims",
+    path: "/adminal-claims",
     element: (
-      <Layout navigation={receptionistNavigation} name={receptionist}>
+      <Layout name={receptionist}>
         <ReceptionistClaims />
       </Layout>
     ),
   },
 
   {
-    path: "/rs/upload",
+    path: "/adminal-report-upload",
     element: (
-      <Layout navigation={receptionistNavigation} name={receptionist}>
+      <Layout name={receptionist}>
         <ReceptionistUpload />
       </Layout>
     ),
   },
 
   {
-    path: "/rs/status",
+    path: "/adminal-status",
     element: (
-      <Layout navigation={receptionistNavigation} name={receptionist}>
+      <Layout name={receptionist}>
         <ReceptionistStatus />
       </Layout>
     ),
   },
 
   {
-    path: "/rs/provider",
+    path: "/adminal-provider",
     element: (
-      <Layout navigation={receptionistNavigation} name={receptionist}>
+      <Layout name={receptionist}>
         <ReceptionistProvider />
       </Layout>
     ),
   },
 
   {
-    path: "/rs/preview",
+    path: "/adminal-preview",
     element: (
-      <Layout navigation={receptionistNavigation} name={receptionist}>
+      <Layout name={receptionist}>
         <ReceptionistPreview />
       </Layout>
     ),
