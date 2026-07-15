@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Layers as DepartmentIcon,
   ArrowRight,
-  CheckCircle2,
   Edit3,
   Plus,
   ChevronDown,
-  Search,
 } from "lucide-react";
 import { useToast } from "../../../../utils/ToastContext";
 
@@ -20,6 +18,11 @@ export default function Departments() {
   const [hospitals, setHospitals] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [formData, setFormData] = useState({});
+
+  // Role & Name Detection
+  const rawRole = localStorage.getItem("role")?.toLowerCase() || "";
+  const isHospitalRole = rawRole === "hospital" || rawRole === "hp";
+  const hospitalDisplayName = localStorage.getItem("dashboardName") || "Your Hospital Branch";
 
   const theme = useMemo(
     () => ({
@@ -37,14 +40,24 @@ export default function Departments() {
         const token = localStorage.getItem("token");
         
         // Fetch Hospitals
-        const hospRes = await fetch("http://127.0.0.1:8000/api/ad/branches/", {
+        const hospRes = await fetch("http://127.0.0.1:8000/api/hospital/", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const hospData = await hospRes.json();
-        if (hospRes.ok) setHospitals(hospData.hospitals || []);
+        
+        if (hospRes.ok) {
+          const fetchedHospitals = hospData.hospitals || [];
+          setHospitals(fetchedHospitals);
+          
+          if (isHospitalRole && fetchedHospitals.length > 0) {
+            const myHospitalId = String(fetchedHospitals[0].id || fetchedHospitals[0].Id);
+            setSelectedHospitalForUpdate(myHospitalId);
+            setFormData((prev) => ({ ...prev, hospital_id: myHospitalId }));
+          }
+        }
 
-        // Fetch Departments (FIXED: Added trailing slash)
-        const deptRes = await fetch("http://127.0.0.1:8000/api/ad/manage/departments/", {
+        // Fetch Departments
+        const deptRes = await fetch("http://127.0.0.1:8000/api/manage/department/", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const deptData = await deptRes.json();
@@ -55,14 +68,20 @@ export default function Departments() {
       }
     };
     fetchData();
-  }, []);
+  }, [isHospitalRole]);
 
   // Reset form when mode changes
   useEffect(() => {
-    setFormData({});
+    if (isHospitalRole) {
+      const myHospitalId = hospitals.length > 0 ? String(hospitals[0].id || hospitals[0].Id) : "auto";
+      setFormData({ hospital_id: myHospitalId });
+      setSelectedHospitalForUpdate(myHospitalId);
+    } else {
+      setFormData({});
+      setSelectedHospitalForUpdate("");
+    }
     setSelectedEntityId("");
-    setSelectedHospitalForUpdate("");
-  }, [mode]);
+  }, [mode, isHospitalRole, hospitals]);
 
   // Load department data into form for update
   useEffect(() => {
@@ -70,8 +89,8 @@ export default function Departments() {
       const d = departments.find((dept) => String(dept.id) === String(selectedEntityId));
       if (d) {
         setFormData({
-          hospital_id: d.hospital_id || "",
-          name: d.name || "",
+          hospital_id: String(d.hospital_id || ""),
+          name: d.name || d.Name || "",
           password: d.password || "",
           building_id: d.building_id || "",
           floor: d.floor || "",
@@ -87,7 +106,8 @@ export default function Departments() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.hospital_id || !formData.name || !formData.password) {
+    // Adjusted validation so hospital role isn't blocked if hospital_id is missing from state
+    if ((!isHospitalRole && !formData.hospital_id) || !formData.name || !formData.password) {
       showToast({
         title: "Required Fields",
         message: "Please fill in Hospital, Department Name, and Password.",
@@ -104,7 +124,7 @@ export default function Departments() {
       const fetchMethod = isAdd ? "POST" : "PUT";
       const payload = isAdd ? formData : { ...formData, id: selectedEntityId };
 
-      const response = await fetch("http://127.0.0.1:8000/api/ad/manage/departments/", {
+      const response = await fetch("http://127.0.0.1:8000/api/manage/department/", {
         method: fetchMethod,
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -121,12 +141,12 @@ export default function Departments() {
           if (isAdd) {
             const newDept = {
               id: data.id,
-              hospital_id: formData.hospital_id,
+              hospital_id: formData.hospital_id || "auto",
               name: formData.name,
               password: formData.password,
               building_id: formData.building_id,
               floor: formData.floor,
-              is_active: formData.is_active === "true",
+              is_active: formData.is_active === "true" || formData.is_active === true,
             };
             return [newDept, ...prev];
           }
@@ -139,7 +159,7 @@ export default function Departments() {
                   password: formData.password,
                   building_id: formData.building_id,
                   floor: formData.floor,
-                  is_active: formData.is_active === "true",
+                  is_active: formData.is_active === "true" || formData.is_active === true,
                 }
               : d
           );
@@ -153,7 +173,7 @@ export default function Departments() {
 
         setTimeout(() => {
           if (mode === "add") {
-            setFormData({});
+            setFormData(isHospitalRole && hospitals.length > 0 ? { hospital_id: String(hospitals[0].id || hospitals[0].Id) } : {});
           }
           setSelectedEntityId("");
         }, 1000);
@@ -171,9 +191,13 @@ export default function Departments() {
     }
   };
 
-  const filteredDepartments = selectedHospitalForUpdate
-    ? departments.filter((d) => String(d.hospital_id) === String(selectedHospitalForUpdate))
-    : [];
+  // If role is Hospital, show all fetched departments directly.
+  // If role is Admin, filter by the selected hospital dropdown.
+  const filteredDepartments = isHospitalRole 
+    ? departments 
+    : (selectedHospitalForUpdate
+      ? departments.filter((d) => String(d.hospital_id) === String(selectedHospitalForUpdate))
+      : []);
 
   return (
     <div
@@ -215,43 +239,60 @@ export default function Departments() {
         {mode === "update" && (
           <div className="mb-10 space-y-6 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-8 bg-slate-50 rounded-[2rem]  border border-slate-100 group hover:border-secondary/30 transition-colors">
+              
+              {/* Step 1: Select Hospital */}
+              <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-secondary/30 transition-colors">
                 <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest group-hover:text-primary transition-colors">
                   Step 1: Select Hospital Branch
                 </label>
-                <select
-                  className="w-full bg-white border-transparent rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-secondary/10 transition-all border shadow-sm cursor-pointer"
-                  value={selectedHospitalForUpdate}
-                  onChange={(e) => {
-                    setSelectedHospitalForUpdate(e.target.value);
-                    setSelectedEntityId(""); 
-                  }}
-                >
-                  <option value="">-- Choose Branch --</option>
-                  {hospitals.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  {isHospitalRole ? (
+                    <select disabled className="w-full bg-gray-100 border-transparent rounded-2xl px-6 py-4 text-sm font-bold !text-gray-500 outline-none transition-all border shadow-sm cursor-not-allowed opacity-90">
+                      <option>{hospitals.length > 0 ? (hospitals[0].name || hospitals[0].Name) : hospitalDisplayName}</option>
+                    </select>
+                  ) : (
+                    <>
+                      <select
+                        className="w-full bg-white border-transparent rounded-2xl px-6 py-4 text-sm font-bold text-slate-800 outline-none focus:ring-4 focus:ring-secondary/10 transition-all border shadow-sm cursor-pointer"
+                        value={String(selectedHospitalForUpdate)}
+                        onChange={(e) => {
+                          setSelectedHospitalForUpdate(e.target.value);
+                          setSelectedEntityId(""); 
+                        }}
+                      >
+                        <option value="">-- Choose Branch --</option>
+                        {hospitals.map((h) => (
+                          <option key={h.id} value={String(h.id)}>
+                            {h.name || h.Name || "Unnamed Branch"}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                    </>
+                  )}
+                </div>
               </div>
 
-              <div className={`p-8 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-secondary/30 transition-all ${!selectedHospitalForUpdate ? "opacity-50 pointer-events-none grayscale" : ""}`}>
+              {/* Step 2: Select Department */}
+              <div className={`p-8 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-secondary/30 transition-all ${!isHospitalRole && !selectedHospitalForUpdate ? "opacity-50 pointer-events-none grayscale" : ""}`}>
                 <label className="block text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest group-hover:text-primary transition-colors">
                   Step 2: Select Department
                 </label>
-                <select
-                  className="w-full bg-white border-transparent rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-secondary/10 transition-all border shadow-sm cursor-pointer"
-                  value={selectedEntityId}
-                  onChange={(e) => setSelectedEntityId(e.target.value)}
-                >
-                  <option value="">-- Choose Department --</option>
-                  {filteredDepartments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    className="w-full bg-white border-transparent rounded-2xl px-6 py-4 text-sm font-bold text-slate-800 outline-none focus:ring-4 focus:ring-secondary/10 transition-all border shadow-sm cursor-pointer"
+                    value={String(selectedEntityId)}
+                    onChange={(e) => setSelectedEntityId(e.target.value)}
+                  >
+                    <option value="">-- Choose Department --</option>
+                    {filteredDepartments.map((d) => (
+                      <option key={d.id} value={String(d.id)}>
+                        {d.name || d.Name || "Unnamed Department"}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                </div>
               </div>
             </div>
           </div>
@@ -280,20 +321,28 @@ export default function Departments() {
                     Parent Hospital *
                   </label>
                   <div className="relative">
-                    <select
-                      name="hospital_id"
-                      value={formData.hospital_id || ""}
-                      onChange={handleInputChange}
-                      className="w-full bg-slate-50 border-transparent rounded-2xl px-6 py-4 text-sm font-semibold outline-none focus:ring-4 focus:ring-secondary/10 transition-all border hover:bg-white text-gray-700 appearance-none cursor-pointer"
-                    >
-                      <option value="">Select Branch</option>
-                      {hospitals.map((h) => (
-                        <option key={h.id} value={h.id}>
-                          {h.name} {/* FIXED: Changed from h.Name */}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                    {isHospitalRole ? (
+                      <select disabled className="w-full bg-gray-100 border-transparent rounded-2xl px-6 py-4 text-sm font-semibold !text-gray-500 outline-none transition-all border appearance-none cursor-not-allowed opacity-90">
+                        <option>{hospitals.length > 0 ? (hospitals[0].name || hospitals[0].Name) : hospitalDisplayName}</option>
+                      </select>
+                    ) : (
+                      <>
+                        <select
+                          name="hospital_id"
+                          value={String(formData.hospital_id || "")}
+                          onChange={handleInputChange}
+                          className="w-full bg-slate-50 border-transparent rounded-2xl px-6 py-4 text-sm font-semibold text-slate-800 outline-none focus:ring-4 focus:ring-secondary/10 transition-all border appearance-none hover:bg-white cursor-pointer"
+                        >
+                          <option value="">Select Branch</option>
+                          {hospitals.map((h) => (
+                            <option key={h.id} value={String(h.id)}>
+                              {h.name || h.Name || "Unnamed Branch"}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -337,7 +386,7 @@ export default function Departments() {
                     name="is_active"
                     value={formData.is_active || "true"}
                     onChange={handleInputChange}
-                    className="w-full bg-slate-50 border-transparent rounded-2xl px-6 py-4 text-sm font-semibold outline-none focus:ring-4 focus:ring-secondary/10 transition-all border hover:bg-white text-gray-700 appearance-none cursor-pointer"
+                    className="w-full bg-slate-50 border-transparent rounded-2xl px-6 py-4 text-sm font-semibold text-slate-800 outline-none focus:ring-4 focus:ring-secondary/10 transition-all border hover:bg-white appearance-none cursor-pointer"
                   >
                     <option value="true">Active</option>
                     <option value="false">Inactive</option>
@@ -375,7 +424,7 @@ export default function Departments() {
   );
 }
 
-// Reusable Components matching your provided code exactly
+// Reusable Components
 function Input({ label, placeholder = "", type = "text", name, value, onChange }) {
   return (
     <div className="group">
@@ -388,7 +437,7 @@ function Input({ label, placeholder = "", type = "text", name, value, onChange }
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full bg-slate-50 border-transparent rounded-2xl px-6 py-4 text-sm font-semibold outline-none focus:ring-4 focus:ring-secondary/10 transition-all border hover:bg-white text-gray-700"
+        className="w-full bg-slate-50 border-transparent rounded-2xl px-6 py-4 text-sm font-semibold text-slate-800 outline-none focus:ring-4 focus:ring-secondary/10 transition-all border hover:bg-white"
       />
     </div>
   );

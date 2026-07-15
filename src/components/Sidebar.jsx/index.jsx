@@ -83,23 +83,23 @@ function Sidebar({ navigation }) {
         
         {/* Header/Logo Section with Dynamic User Name */}
         <div className="flex h-20 items-center px-4 border-b border-gray-200">
-          <div className="flex items-center gap-2 overflow-hidden w-full">
+          <div className="flex items-center gap-3 overflow-hidden w-full">
             <img
               src={logo ? logo : "/medlock.png"}
-              className="h-12 w-13 flex-shrink-0 hover:scale-105 cursor-pointer transition-transform"
+              className="h-12 w-12 object-contain flex-shrink-0 hover:scale-105 cursor-pointer transition-transform"
               alt="Logo"
             />
-            <h1 className="text-xl font-bold text-primary truncate whitespace-nowrap pr-2">
+            <h1 className="text-xl font-bold text-primary truncate whitespace-nowrap">
               {displayName}
             </h1>
           </div>
         </div>
 
         {/* Navigation Live Search Bar */}
-        <div className="border-b border-gray-200 px-4 py-3">
+        <div className="border-b border-gray-200 px-4 py-2.5">
           <div className="relative rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Search className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />
             </div>
             <input
               type="text"
@@ -107,14 +107,14 @@ function Sidebar({ navigation }) {
               id="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full rounded-md border-0 py-1.5 pl-9 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 outline-none bg-white"
+              className="block w-full rounded-md border-0 py-1.5 pl-8 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary text-xs sm:text-xs outline-none bg-white"
               placeholder="Search tabs..."
             />
           </div>
         </div>
 
         {/* Navigation Section */}
-        <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
+        <nav className="flex-1 space-y-1 px-2 py-3 overflow-y-auto">
           {filteredNavigation.map((item, index) => {
             const hasSubItems = item.subItems && item.subItems.length > 0;
             // Automatically expand menu groups if the user is actively searching
@@ -129,20 +129,20 @@ function Sidebar({ navigation }) {
                   // Accordion Menu Trigger Item
                   <button
                     onClick={() => toggleSubMenu(item.name)}
-                    className={`group flex items-center justify-between w-full p-3 text-sm font-medium rounded-md transition-all text-left outline-none ${
+                    className={`group flex items-center justify-between w-full px-3 py-2 text-xs font-medium rounded-md transition-all text-left outline-none ${
                       isActive ? "bg-primary text-white" : "text-black hover:bg-gray-100"
                     }`}
                   >
                     <span>{item.name}</span>
                     <ChevronDown
-                      className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                      className={`h-3.5 w-3.5 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                     />
                   </button>
                 ) : (
                   // Simple Navigation Link
                   <Link
                     to={item.href}
-                    className={`group flex items-center p-3 text-sm font-medium rounded-md transition-all ${
+                    className={`group flex items-center px-3 py-2 text-xs font-medium rounded-md transition-all ${
                       isActive ? "bg-primary text-white" : "hover:bg-secondary text-black"
                     }`}
                   >
@@ -152,14 +152,14 @@ function Sidebar({ navigation }) {
 
                 {/* Sub-menu Items Rendering */}
                 {hasSubItems && isOpen && (
-                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-100 pl-4 transition-all">
+                  <div className="ml-3 mt-1 space-y-0.5 border-l-2 border-gray-100 pl-3 transition-all">
                     {item.subItems.map((sub) => {
                       const isSubActive = location.pathname === sub.href;
                       return (
                         <Link
                           key={sub.name}
                           to={sub.href}
-                          className={`flex items-center p-2 text-sm rounded-md transition-all ${
+                          className={`flex items-center px-2 py-1.5 text-xs rounded-md transition-all ${
                             isSubActive 
                               ? "text-white font-bold bg-secondary" 
                               : "text-gray-500 hover:bg-gray-100 hover:text-black"
@@ -176,7 +176,7 @@ function Sidebar({ navigation }) {
           })}
           
           {filteredNavigation.length === 0 && (
-            <div className="text-center py-4 text-xs text-gray-400">
+            <div className="text-center py-4 text-[11px] text-gray-400">
               No tabs found matching "{searchQuery}"
             </div>
           )}
@@ -186,9 +186,9 @@ function Sidebar({ navigation }) {
         <div className="border-t border-gray-200">
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="w-full flex items-center p-3 text-sm font-medium transition-colors hover:bg-red-50 text-red-600"
+            className="w-full flex items-center p-3 text-xs font-medium transition-colors hover:bg-red-50 text-red-600"
           >
-            <LogOut className="h-5 w-5 flex-shrink-0" />
+            <LogOut className="h-4 w-4 flex-shrink-0" />
             <span className="ml-3">Logout</span>
           </button>
         </div>

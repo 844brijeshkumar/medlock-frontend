@@ -34,43 +34,69 @@ export default function StaffManagement() {
   const [staffList, setStaffList] = useState([]);
   const [formData, setFormData] = useState({});
 
+  // --- ROLE DETECTION ---
+  const rawRole = localStorage.getItem("role")?.toLowerCase() || "";
+  const isHospitalRole = rawRole === "hospital" || rawRole === "hp";
+  const isDepartmentRole = rawRole === "department" || rawRole === "dp";
+  const isAdminRole = !isHospitalRole && !isDepartmentRole;
+  
+  // Safe fallback names
+  const dashboardName = localStorage.getItem("name") || localStorage.getItem("dashboardName") || "Your Entity";
+  const parentHospitalName = localStorage.getItem("parentHospitalName") || "Parent Hospital Network";
+
   const theme = useMemo(
     () => ({ primary: "#0b4f4a", secondary: "#2a9b94", accent: "#d1e8e5" }),
     []
   );
 
-  // Role Configuration for dynamic UI
   const roleConfig = {
     doctor: { title: "Practitioner", icon: Stethoscope },
     nurse: { title: "Nursing Staff", icon: Activity },
     receptionist: { title: "Receptionist", icon: User },
   };
 
-  // 1. Fetch Hospitals and Departments on mount
+  // 1. Fetch Hospitals and Departments on mount based on Role
   useEffect(() => {
     const fetchBaseData = async () => {
       const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+      
       try {
-        const [hospRes, deptRes] = await Promise.all([
-          fetch("http://127.0.0.1:8000/api/ad/branches/", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch("http://127.0.0.1:8000/api/ad/manage/departments/", {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        ]);
-        
-        const hospData = await hospRes.json();
-        const deptData = await deptRes.json();
-        
-        if (hospRes.ok) setHospitals(hospData.hospitals || []);
-        if (deptRes.ok) setAllDepartments(deptData.departments || []);
+        // Everyone needs departments
+        const deptRes = await fetch("http://127.0.0.1:8000/api/manage/department/", { headers });
+        let fetchedDepartments = [];
+        if (deptRes.ok) {
+          const deptData = await deptRes.json();
+          fetchedDepartments = deptData.departments || [];
+          setAllDepartments(fetchedDepartments);
+        }
+
+        // Fetch Hospitals (Even for Departments, to try and grab the parent name)
+        const hospRes = await fetch("http://127.0.0.1:8000/api/hospital/", { headers });
+        if (hospRes.ok) {
+          const hospData = await hospRes.json();
+          const fetchedHospitals = hospData.hospitals || [];
+          setHospitals(fetchedHospitals);
+
+          // Auto-lock Hospital if logged in as Hospital
+          if (isHospitalRole && fetchedHospitals.length > 0) {
+            setSelectedHospitalId(String(fetchedHospitals[0].id || fetchedHospitals[0].Id));
+          }
+        }
+
+        // Auto-lock Department (and infer parent hospital) if logged in as Department
+        if (isDepartmentRole && fetchedDepartments.length > 0) {
+          const myDept = fetchedDepartments[0];
+          setSelectedDepartmentId(String(myDept.id || myDept.Id));
+          setSelectedHospitalId(String(myDept.hospital_id)); 
+        }
+
       } catch (err) {
         console.error("Failed to load infrastructure data:", err);
       }
     };
     fetchBaseData();
-  }, []);
+  }, [isAdminRole, isHospitalRole, isDepartmentRole]);
 
   // 2. Fetch Staff when Role changes
   useEffect(() => {
@@ -78,7 +104,7 @@ export default function StaffManagement() {
       const fetchStaff = async () => {
         const token = localStorage.getItem("token");
         try {
-          const res = await fetch(`http://127.0.0.1:8000/api/ad/manage/staff/?role=${selectedRole}`, {
+          const res = await fetch(`http://127.0.0.1:8000/api/manage/staff/?role=${selectedRole}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const data = await res.json();
@@ -91,7 +117,7 @@ export default function StaffManagement() {
     } else {
       setStaffList([]);
     }
-  }, [selectedRole, isProcessing]); // Re-fetch after processing a save/update
+  }, [selectedRole, isProcessing]);
 
   // Reset cascading selections cleanly
   useEffect(() => {
@@ -99,10 +125,13 @@ export default function StaffManagement() {
     setSelectedStaffId("");
   }, [mode, selectedRole, selectedDepartmentId]);
 
+  // Clear downstream selections when Hospital changes (Only if not a Department user)
   useEffect(() => {
-    setSelectedDepartmentId("");
-    setSelectedRole("");
-  }, [selectedHospitalId]);
+    if (!isDepartmentRole) {
+      setSelectedDepartmentId("");
+      setSelectedRole("");
+    }
+  }, [selectedHospitalId, isDepartmentRole]);
 
   // Load staff data into form for update
   useEffect(() => {
@@ -110,9 +139,9 @@ export default function StaffManagement() {
       const s = staffList.find((s) => String(s.id) === String(selectedStaffId));
       if (s) {
         setFormData({
-          name: s.name || "",
+          name: s.name || s.Name || "",
           password: "", // Never pre-fill passwords
-          adhaar: s.adhaar === "[Aadhaar Redacted]" ? "" : (s.adhaar || ""), // Handle redacted backend data securely
+          adhaar: s.adhaar === "[Aadhaar Redacted]" ? "" : (s.adhaar || ""),
           contact: s.contact || "",
           gmail: s.gmail || "",
           address: s.address || "",
@@ -146,6 +175,7 @@ export default function StaffManagement() {
     try {
       const token = localStorage.getItem("token");
       const isAdd = mode === "add";
+      
       const payload = { 
         ...formData, 
         role: selectedRole, 
@@ -154,7 +184,7 @@ export default function StaffManagement() {
 
       if (!isAdd) payload.id = selectedStaffId;
 
-      const response = await fetch("http://127.0.0.1:8000/api/ad/manage/staff/", {
+      const response = await fetch("http://127.0.0.1:8000/api/manage/staff/", {
         method: isAdd ? "POST" : "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -250,39 +280,62 @@ export default function StaffManagement() {
               </label>
               <div className="relative group">
                 <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 size-4" />
-                <select
-                  className="w-full bg-white border border-gray-100 rounded-2xl pl-10 pr-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 cursor-pointer appearance-none"
-                  value={selectedHospitalId}
-                  onChange={(e) => setSelectedHospitalId(e.target.value)}
-                >
-                  <option value="">-- Choose Hospital --</option>
-                  {hospitals.map((h) => (
-                    <option key={h.id || h.Id} value={h.id || h.Id}>{h.name || h.Name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 size-4 pointer-events-none" />
+                {isHospitalRole || isDepartmentRole ? (
+                  <select disabled className="w-full bg-gray-100 border border-gray-100 rounded-2xl pl-10 pr-4 py-3 text-sm font-bold !text-gray-500 outline-none transition-all shadow-sm cursor-not-allowed opacity-90 appearance-none">
+                    <option>
+                      {hospitals.length > 0 
+                        ? (hospitals[0].name || hospitals[0].Name) 
+                        : (isDepartmentRole ? parentHospitalName : dashboardName)}
+                    </option>
+                  </select>
+                ) : (
+                  <>
+                    <select
+                      className="w-full bg-white border border-gray-100 rounded-2xl pl-10 pr-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 cursor-pointer appearance-none text-slate-800"
+                      value={selectedHospitalId}
+                      onChange={(e) => setSelectedHospitalId(e.target.value)}
+                    >
+                      <option value="">-- Choose Hospital --</option>
+                      {hospitals.map((h) => (
+                        <option key={h.id || h.Id} value={h.id || h.Id}>{h.name || h.Name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 size-4 pointer-events-none" />
+                  </>
+                )}
               </div>
             </div>
 
             {/* Step 2: Department */}
-            <div className={!selectedHospitalId ? "opacity-50 grayscale pointer-events-none" : "transition-all duration-300"}>
+            <div className={!isDepartmentRole && !selectedHospitalId ? "opacity-50 grayscale pointer-events-none" : "transition-all duration-300"}>
               <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest ml-1">
                 Step 2: Department
               </label>
               <div className="relative group">
                 <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 size-4" />
-                <select
-                  className="w-full bg-white border border-gray-100 rounded-2xl pl-10 pr-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 cursor-pointer appearance-none"
-                  value={selectedDepartmentId}
-                  onChange={(e) => setSelectedDepartmentId(e.target.value)}
-                  disabled={!selectedHospitalId}
-                >
-                  <option value="">-- Choose Dept --</option>
-                  {filteredDepartments.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 size-4 pointer-events-none" />
+                {isDepartmentRole ? (
+                  <select disabled className="w-full bg-gray-100 border border-gray-100 rounded-2xl pl-10 pr-4 py-3 text-sm font-bold !text-gray-500 outline-none transition-all shadow-sm cursor-not-allowed opacity-90 appearance-none">
+                    <option>
+                      {allDepartments.length > 0 
+                        ? (allDepartments[0].name || allDepartments[0].Name) 
+                        : dashboardName}
+                    </option>
+                  </select>
+                ) : (
+                  <>
+                    <select
+                      className="w-full bg-white border border-gray-100 rounded-2xl pl-10 pr-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 cursor-pointer appearance-none text-slate-800"
+                      value={selectedDepartmentId}
+                      onChange={(e) => setSelectedDepartmentId(e.target.value)}
+                    >
+                      <option value="">-- Choose Dept --</option>
+                      {filteredDepartments.map((d) => (
+                        <option key={d.id || d.Id} value={d.id || d.Id}>{d.name || d.Name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 size-4 pointer-events-none" />
+                  </>
+                )}
               </div>
             </div>
 
@@ -297,7 +350,6 @@ export default function StaffManagement() {
                   className="w-full bg-white border border-gray-100 rounded-2xl pl-10 pr-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 cursor-pointer appearance-none text-primary"
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
-                  disabled={!selectedDepartmentId}
                 >
                   <option value="">-- Role --</option>
                   <option value="doctor">Doctor</option>
@@ -317,13 +369,13 @@ export default function StaffManagement() {
               </label>
               <div className="relative max-w-md">
                 <select
-                  className="w-full bg-white border border-secondary/30 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary cursor-pointer"
+                  className="w-full bg-white border border-secondary/30 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary cursor-pointer text-slate-800"
                   value={selectedStaffId}
                   onChange={(e) => setSelectedStaffId(e.target.value)}
                 >
                   <option value="">-- Select Member to Update --</option>
                   {filteredStaff.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} (Punch ID: {s.punch_id})</option>
+                    <option key={s.id || s.Id} value={s.id || s.Id}>{s.name || s.Name} (Punch ID: {s.punch_id})</option>
                   ))}
                 </select>
               </div>
@@ -371,7 +423,7 @@ export default function StaffManagement() {
                 />
                 
                 <Input
-                  name="adhaar" label="Aadhaar ID" placeholder="Enter ID Number"
+                  name="adhaar" label="National ID / Aadhaar" placeholder="XXXX-XXXX-XXXX"
                   value={formData.adhaar || ""} onChange={handleInputChange} icon={<Fingerprint size={16} />}
                 />
                 
@@ -380,7 +432,7 @@ export default function StaffManagement() {
                   value={formData.punch_id || ""} onChange={handleInputChange} icon={<Activity size={16} />}
                 />
 
-                {/* Conditional Field: Designation is for Doctors only based on your models */}
+                {/* Conditional Field: Designation is for Doctors only */}
                 {selectedRole === "doctor" && (
                   <Input
                     name="designation" label="Designation / Specialization" placeholder="Cardiologist, MBBS"
