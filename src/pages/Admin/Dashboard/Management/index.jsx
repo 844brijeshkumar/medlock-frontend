@@ -54,7 +54,7 @@ export default function Management() {
       try {
         const token = localStorage.getItem("token");
         // Using the GET endpoint we made previously
-        const res = await fetch("http://127.0.0.1:8000/api/ad/branches/", {
+        const res = await fetch("http://127.0.0.1:8000/api/hospital/", {
           headers: { Authorization: `Bearer ${token}` },
         });
         
@@ -127,7 +127,7 @@ export default function Management() {
       const fetchMethod = isAdd ? "POST" : "PUT";
       const payload = isAdd ? formData : { ...formData, id: selectedEntityId };
 
-      const response = await fetch("http://127.0.0.1:8000/api/ad/manage/hospitals/", {
+      const response = await fetch("http://127.0.0.1:8000/api/manage/hospital/", {
         method: fetchMethod,
         headers: {
           "Authorization": `Bearer ${token}`,

@@ -52,21 +52,15 @@ const Insurance = lazy(
   () => import("../pages/Doctor/Dashboard/Insurance.jsx"),
 );
 
-const DoctorsSection = lazy(
-  () => import("../pages/Hospital/Dashboard/DoctorSection.jsx"),
+
+const ProfileSection = lazy(
+  () => import("../pages/Hospital/Dashboard/ProfileSection.jsx"),
 );
 
 const ReportsSection = lazy(
   () => import("../pages/Hospital/Dashboard/ReportSection.jsx"),
 );
 
-const ProfileSection = lazy(
-  () => import("../pages/Hospital/Dashboard/ProfileSection.jsx"),
-);
-
-const ReceptionistSection = lazy(
-  () => import("../pages/Hospital/Dashboard/ReceptionistsSection.jsx"),
-);
 
 const PatientSettingsPage = lazy(
   () => import("../pages/Patient/Dashboard/PatientSettingsPage.jsx"),
@@ -354,24 +348,6 @@ const router = createBrowserRouter([
     element: (
       <Layout name={hospital}>
         <HospitalDashboard />
-      </Layout>
-    ),
-  },
-
-  {
-    path: "/hp/doctor-form",
-    element: (
-      <Layout name={hospital}>
-        <DoctorsSection />
-      </Layout>
-    ),
-  },
-
-  {
-    path: "/hp/receptionist-form",
-    element: (
-      <Layout name={hospital}>
-        <ReceptionistSection />
       </Layout>
     ),
   },

@@ -1,358 +1,332 @@
-import React, { useEffect, useState, useMemo } from "react";
-import {
-  MapPin,
-  TrendingUp,
-  Building2,
-  CheckCircle2,
-  XCircle,
-  Search,
-  Activity,
-  ArrowRight,
-  Filter,
+import React, { useState, useEffect } from "react";
+import { 
+  Building2, Layers, ChevronDown, ChevronRight, 
+  Search, Stethoscope, Activity, User, MapPin
 } from "lucide-react";
 
 export default function BranchList() {
-  const [filter, setFilter] = useState("All");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [hospitalData, setHospitalData] = useState([]);
-  
-  // Added Loading & Error States based on your new pattern
+  const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  
+  // --- ROLE DETECTION ---
+  const rawRole = localStorage.getItem("role")?.toLowerCase() || "";
+  const isHospitalRole = rawRole === "hospital" || rawRole === "hp";
+  const isDepartmentRole = rawRole === "department" || rawRole === "dp";
+  const isAdminRole = !isHospitalRole && !isDepartmentRole;
 
-  // --- THEME CONFIGURATION ---
-  const theme = useMemo(
-    () => ({
-      primary: "#0b4f4a",
-      secondary: "#2a9b94",
-      accent: "#d1e8e5",
-    }),
-    [],
-  );
+  // Search & Filter States
+  const defaultScope = isAdminRole ? "hospital" : isHospitalRole ? "department" : "staff";
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchScope, setSearchScope] = useState(defaultScope); 
+  const [activeTab, setActiveTab] = useState("Active"); // Active | Inactive
 
-  // --- API FETCH LOGIC ---
   useEffect(() => {
-    const fetchHospitalsData = async () => {
+    const fetchAllData = async () => {
       setIsLoading(true);
-      setError(null);
-      
-      try {
-        // 1. Get the JWT token from storage inside the function
-        const token = localStorage.getItem("token"); 
-        if (!token) throw new Error("No authentication token found.");
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
 
-        // 2. Make the API Call to Django
-        const response = await fetch(`http://127.0.0.1:8000/api/ad/branches/`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+      try {
+        // 1. Fetch all data concurrently
+        const [hospRes, deptRes, docRes, nurseRes, recRes] = await Promise.all([
+          fetch("http://127.0.0.1:8000/api/hospital/", { headers }),
+          fetch("http://127.0.0.1:8000/api/manage/department/", { headers }),
+          fetch("http://127.0.0.1:8000/api/manage/staff/?role=doctor", { headers }),
+          fetch("http://127.0.0.1:8000/api/manage/staff/?role=nurse", { headers }),
+          fetch("http://127.0.0.1:8000/api/manage/staff/?role=receptionist", { headers })
+        ]);
+
+        // 2. Parse responses safely
+        const [hospData, deptData, docData, nurseData, recData] = await Promise.all([
+          hospRes.ok ? hospRes.json() : { hospitals: [] },
+          deptRes.ok ? deptRes.json() : { departments: [] },
+          docRes.ok ? docRes.json() : { staff: [] },
+          nurseRes.ok ? nurseRes.json() : { staff: [] },
+          recRes.ok ? recRes.json() : { staff: [] }
+        ]);
+
+        // 3. Combine Staff with explicitly tagged roles
+        const allStaff = [
+          ...(docData.staff || []).map(s => ({ ...s, role: "doctor" })),
+          ...(nurseData.staff || []).map(s => ({ ...s, role: "nurse" })),
+          ...(recData.staff || []).map(s => ({ ...s, role: "receptionist" }))
+        ];
+
+        const rawHospitals = hospData.hospitals || [];
+        const rawDepartments = deptData.departments || [];
+
+        // 4. Stitch the hierarchy together: Hospital -> Departments -> Staff
+        const builtTree = rawHospitals.map((h) => {
+          const hospId = String(h.id || h.Id);
+          
+          // Find departments for this hospital
+          const hDepts = rawDepartments.filter(d => String(d.hospital_id) === hospId);
+          
+          // Find staff for those departments
+          const deptsWithStaff = hDepts.map(d => {
+            const deptId = String(d.id || d.Id);
+            const dStaff = allStaff.filter(s => String(s.department_id) === deptId);
+            return { ...d, staff: dStaff };
+          });
+
+          return { ...h, departments: deptsWithStaff };
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch branch data");
-        }
-
-        const data = await response.json();
-        
-        // 3. Populate the UI with backend data
-        setHospitalData(data.hospitals || []);
-        
+        setData(builtTree);
       } catch (err) {
-        console.error("Branch fetch error:", err);
-        setError(err.message);
+        console.error("Failed to stitch directory tree:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchHospitalsData();
+    fetchAllData();
   }, []);
 
-  // Filter Logic
-  const filteredHospitals = hospitalData?.filter((h) => {
-    const matchesFilter = filter === "All" || h.Status__c === filter;
-    const matchesSearch =
-      h.Name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      h.District__r?.Name?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  // --- LOCAL SEARCH & FILTER ENGINE ---
+  const filteredData = data.map((h) => {
+    // Check Status Tab
+    const hospStatus = h.Status__c || h.status || "Active";
+    if (activeTab === "Active" && hospStatus !== "Active") return null;
+    if (activeTab === "Inactive" && hospStatus === "Active") return null;
+
+    if (!searchQuery) return h;
+    const query = searchQuery.toLowerCase();
+
+    // Route 1: Search by Hospital Name, District, or State
+    if (searchScope === "hospital") {
+      const hName = String(h.Name || h.name || "").toLowerCase();
+      const hDistrict = String(h.District__r?.Name || h.district || "").toLowerCase();
+      const hState = String(h.State__r?.Name || h.state || "").toLowerCase();
+
+      if (hName.includes(query) || hDistrict.includes(query) || hState.includes(query)) {
+        return h;
+      }
+      return null;
+    }
+
+    // Route 2: Search by Department Name
+    if (searchScope === "department") {
+      const matchingDepts = h.departments.filter(d => 
+        String(d.name || d.Name || "").toLowerCase().includes(query)
+      );
+      if (matchingDepts.length > 0) return { ...h, departments: matchingDepts };
+      return null;
+    }
+
+    // Route 3: Search by Staff Name or ID
+    if (searchScope === "staff") {
+      const matchingDepts = h.departments.map(d => {
+        const matchingStaff = d.staff.filter(s => 
+          String(s.name || s.Name || "").toLowerCase().includes(query) || 
+          String(s.punch_id || "").includes(query)
+        );
+        if (matchingStaff.length > 0) return { ...d, staff: matchingStaff };
+        return null;
+      }).filter(Boolean);
+
+      if (matchingDepts.length > 0) return { ...h, departments: matchingDepts };
+      return null;
+    }
+
+    return h;
+  }).filter(Boolean);
+
+  // Available scopes based on Role
+  const availableScopes = isAdminRole 
+    ? ['hospital', 'department', 'staff'] 
+    : isHospitalRole 
+      ? ['department', 'staff']
+      : ['staff'];
 
   return (
-    <div
-      className="min-h-screen bg-slate-50 pb-20 font-sans relative"
-      style={{
-        "--primary": theme.primary,
-        "--secondary": theme.secondary,
-        "--accent": theme.accent,
-      }}
-    >
-      <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          animation: marquee 10s linear infinite;
-        }
-      `}</style>
-
-      {/* --- HERO SECTION --- */}
-      <div className="bg-gradient-to-br from-primary to-secondary pt-12 pb-24 px-4 sm:px-8 md:px-12 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full -ml-20 -mb-20 blur-2xl pointer-events-none"></div>
-
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 bg-white/10 w-fit px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md shadow-sm">
-                <Activity size={14} className="text-teal-300 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/90">
-                  Live Network Status
-                </span>
-              </div>
-              <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">
-                Branch Directory
-              </h1>
-              <p className="text-teal-50/80 text-lg font-medium max-w-xl">
-                Real-time management and performance auditing for{" "}
-                <span className="text-white font-bold">
-                  {hospitalData?.length || 0}
-                </span>{" "}
-                interconnected healthcare facilities.
-              </p>
-            </div>
-
-            <div className="flex flex-col items-start md:items-end gap-4">
-              <div className="bg-white/10 backdrop-blur-xl p-6 rounded-3xl border border-white/20 shadow-2xl transform hover:scale-105 transition-transform duration-300">
-                <p className="text-teal-200 text-[10px] font-bold uppercase tracking-widest mb-1">
-                  Total Reports Aggregated
-                </p>
-                <p className="text-4xl font-black text-white">
-                  4,790{" "}
-                  <span className="text-sm font-bold text-teal-300 bg-teal-900/30 px-2 py-1 rounded-lg ml-2">
-                    +12%
-                  </span>
-                </p>
-              </div>
-            </div>
+    <div className="max-w-5xl mx-auto py-10 px-6 font-sans">
+      
+      {/* Header & Search Area */}
+      <div className="mb-10">
+        <h1 className="text-3xl font-black text-slate-900 mb-6">
+          {isAdminRole ? "Network Directory" : isHospitalRole ? "Branch Directory" : "Department Directory"}
+        </h1>
+        
+        <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              className="w-full pl-12 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 font-bold text-sm outline-none focus:ring-2 focus:ring-teal-500/20 transition-all text-slate-700"
+              placeholder={`Search by ${searchScope}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-        </div>
-      </div>
 
-      {/* --- FILTER & SEARCH BAR --- */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 -mt-10 z-20 relative">
-        <div className="bg-white rounded-[2rem] p-3 shadow-xl shadow-secondary/10 border border-gray-100 flex flex-col lg:flex-row items-center justify-between gap-4">
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto p-2">
-            <div className="bg-gray-50 p-1.5 rounded-xl flex gap-1 w-full sm:w-auto border border-gray-100">
-              {["All", "Active", "Inactive"].map((f, index) => (
-                <button
-                  key={index}
-                  onClick={() => setFilter(f)}
-                  className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-wide transition-all duration-300 ${
-                    filter === f
-                      ? "bg-white text-primary shadow-md transform scale-105"
-                      : "text-gray-400 hover:text-secondary hover:bg-gray-100"
+          {availableScopes.length > 1 && (
+            <div className="flex gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 overflow-x-auto w-full md:w-auto">
+              {availableScopes.map((s) => (
+                <button 
+                  key={s}
+                  onClick={() => { setSearchScope(s); setSearchQuery(""); }}
+                  className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                    searchScope === s 
+                    ? 'bg-white shadow-sm text-teal-800' 
+                    : 'text-slate-400 hover:text-slate-600'
                   }`}
                 >
-                  {f}
+                  {s}
                 </button>
               ))}
             </div>
-            <div className="hidden sm:block w-px h-8 bg-gray-200"></div>
-            <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-              <Filter size={14} className="text-secondary" />
-              {filteredHospitals?.length || 0} Branches Found
-            </div>
-          </div>
-
-          <div className="relative w-full lg:w-96 group mr-2">
-            <Search
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-secondary transition-colors"
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="Search by name or district..."
-              className="w-full bg-gray-50 border-transparent focus:bg-white rounded-2xl pl-14 pr-6 py-4 text-sm font-bold text-gray-700 outline-none focus:ring-4 focus:ring-secondary/10 transition-all border group-hover:border-secondary/20"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          )}
         </div>
       </div>
 
-      {/* --- BRANCH GRID / STATES --- */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 mt-12">
+      {/* Tabs */}
+      <div className="flex gap-6 mb-6 px-2">
+        {['Active', 'Inactive'].map(tab => (
+          <button 
+            key={tab} 
+            onClick={() => setActiveTab(tab)}
+            className={`text-xs font-black uppercase tracking-widest pb-2 border-b-2 transition-colors ${
+              activeTab === tab ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            {tab} Branches
+          </button>
+        ))}
+      </div>
+
+      {/* Directory Hierarchy */}
+      <div className="space-y-4">
         {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Activity className="animate-spin text-primary" size={48} />
+          <div className="py-20 flex justify-center">
+            <Activity className="animate-spin text-teal-600" size={32} />
           </div>
-        ) : error ? (
-          <div className="bg-red-50 text-red-600 rounded-3xl p-10 text-center border border-red-200">
-            <h3 className="text-xl font-bold mb-2">Failed to load branches</h3>
-            <p>{error}</p>
-          </div>
-        ) : filteredHospitals?.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {filteredHospitals?.map((h, index) => (
-              <div
-                key={index}
-                className="group relative bg-white rounded-[2.5rem] p-8 border border-gray-100 transition-all duration-500 hover:-translate-y-2 hover:border-secondary hover:shadow-2xl hover:shadow-secondary/15 overflow-hidden"
-              >
-                {/* Top Accent Line Animation */}
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary to-secondary scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
-
-                {/* Status Badge */}
-                <div className="absolute top-8 right-8 z-20">
-                  {h.Status__c === "Active" ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-100 shadow-sm">
-                      <CheckCircle2 size={12} className="animate-pulse" />{" "}
-                      Active
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-400 rounded-full text-[10px] font-black uppercase tracking-wider border border-gray-100 shadow-sm">
-                      <XCircle size={12} /> Inactive
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative z-10 flex flex-col h-full">
-                  <div className="flex items-start gap-5 mb-8 overflow-hidden">
-                    <div className="bg-gradient-to-br from-primary to-secondary p-5 rounded-3xl shadow-lg shadow-secondary/20 group-hover:scale-110 transition-transform duration-500 shrink-0">
-                      <Building2 className="text-white" size={32} />
-                    </div>
-
-                    {/* --- MARQUEE CONTAINER FOR HOSPITAL NAME --- */}
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <div className="flex w-max group-hover:animate-marquee">
-                        <h3 className="font-black text-2xl text-gray-900 group-hover:text-primary transition-colors pr-10">
-                          {h.Name}
-                        </h3>
-                        {/* Duplicate Name for Seamless Loop Effect */}
-                        <h3
-                          className="font-black text-2xl text-gray-900 group-hover:text-primary transition-colors pr-10"
-                          aria-hidden="true"
-                        >
-                          {h.Name}
-                        </h3>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 text-gray-400 mt-1">
-                        <MapPin size={14} className="text-secondary shrink-0" />
-                        <span className="text-xs font-bold tracking-tight truncate">
-                          {h.State__r?.Name}, {h.District__r?.Name}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 mb-8">
-                    <BranchStat
-                      label="Reports"
-                      value={h.counts?.reports || 0}
-                      color="teal"
-                    />
-                    <BranchStat
-                      label="Doctors"
-                      value={h.counts?.doctors || 0}
-                      color="indigo"
-                    />
-                    <BranchStat
-                      label="Reception"
-                      value={h.counts?.receptionists || 0}
-                      color="amber"
-                    />
-                  </div>
-
-                  <div className="mt-auto pt-6 border-t border-gray-50 flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex -space-x-3">
-                        {[1, 2, 3].map((i) => (
-                          <div
-                            key={i}
-                            className="w-10 h-10 rounded-full bg-gray-100 border-4 border-white flex items-center justify-center overflow-hidden shadow-sm"
-                          >
-                            <img
-                              src={`https://i.pravatar.cc/100?u=${h.id}${i}`}
-                              alt="User"
-                              className="w-full h-full object-cover grayscale opacity-70"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        +
-                        {Math.max(
-                          0,
-                          (h.counts?.doctors || 0) +
-                            (h.counts?.receptionists || 0),
-                        )}{" "}
-                        Staff
-                      </div>
-                    </div>
-
-                    <button className="bg-white border border-gray-100 text-gray-600 px-6 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 shadow-sm hover:bg-primary hover:text-white hover:border-transparent transition-all group/btn">
-                      Analytics{" "}
-                      <ArrowRight
-                        size={16}
-                        className="group-hover/btn:translate-x-1 transition-transform"
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Growth Indicator Overlay */}
-                <div className="absolute -bottom-4 -right-4 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
-                  <TrendingUp size={120} className="text-secondary" />
-                </div>
-              </div>
-            ))}
+        ) : filteredData.length === 0 ? (
+          <div className="py-20 text-center text-slate-400 bg-white rounded-3xl border border-slate-200">
+            <Building2 size={32} className="mx-auto mb-3 opacity-50" />
+            <p className="font-bold">No records match your current filters.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-[3rem] p-20 text-center shadow-xl shadow-gray-100 border border-gray-100 animate-in fade-in zoom-in duration-500">
-            <div className="w-24 h-24 bg-gray-50 rounded-[2rem] flex items-center justify-center mx-auto text-gray-300 mb-6">
-              <Building2 size={48} />
-            </div>
-            <h3 className="text-2xl font-black text-gray-900 mb-2">
-              No Matching Branches
-            </h3>
-            <p className="text-gray-400 text-sm font-medium max-w-sm mx-auto mb-8">
-              Adjust your search or clear filters to view available healthcare
-              centers.
-            </p>
-            <button
-              onClick={() => {
-                setFilter("All");
-                setSearchTerm("");
-              }}
-              className="bg-primary text-white px-8 py-3 rounded-2xl font-bold hover:bg-secondary transition-colors shadow-lg shadow-primary/20"
-            >
-              Reset Filters
-            </button>
-          </div>
+          filteredData.map((hospital) => (
+            <BranchNode 
+              key={hospital.id || hospital.Id} 
+              hospital={hospital} 
+              autoExpand={searchQuery !== "" || !isAdminRole} 
+              lockOpen={!isAdminRole}
+            />
+          ))
         )}
       </div>
     </div>
   );
 }
 
-function BranchStat({ label, value, color }) {
-  const styles = {
-    teal: "text-emerald-600 bg-emerald-50 border-emerald-100",
-    indigo: "text-blue-600 bg-blue-50 border-blue-100",
-    amber: "text-amber-600 bg-amber-50 border-amber-100",
+// --- SUB-COMPONENTS FOR ACCORDION HIERARCHY ---
+
+function BranchNode({ hospital, autoExpand, lockOpen }) {
+  // If lockOpen is true (for Hospitals/Departments), we force it open
+  const [isOpen, setIsOpen] = useState(autoExpand || lockOpen);
+  
+  useEffect(() => { 
+    if (!lockOpen) setIsOpen(autoExpand); 
+  }, [autoExpand, lockOpen]);
+
+  const toggleOpen = () => {
+    if (!lockOpen) setIsOpen(!isOpen);
   };
 
   return (
-    <div
-      className={`rounded-2xl p-3 text-center border transition-all cursor-default hover:bg-white hover:shadow-md ${styles[color]}`}
-    >
-      <p className="text-xl font-black leading-tight">{value}</p>
-      <p className="text-[9px] font-bold uppercase tracking-widest opacity-70 mt-1">
-        {label}
-      </p>
+    <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm transition-all hover:border-teal-200">
+      <div 
+        className={`p-6 flex items-center justify-between transition-colors ${lockOpen ? 'bg-slate-50 border-b border-slate-100 cursor-default' : 'cursor-pointer hover:bg-slate-50'}`}
+        onClick={toggleOpen}
+      >
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-teal-50 text-teal-700 rounded-2xl shrink-0">
+            <Building2 size={24} />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg text-slate-900">{hospital.Name || hospital.name}</h3>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1 mt-0.5">
+               <MapPin size={10}/> {hospital.District__r?.Name || hospital.district || "Location N/A"}
+            </p>
+          </div>
+        </div>
+        {!lockOpen && (
+          <ChevronDown size={20} className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        )}
+      </div>
+
+      <div className={`grid transition-all duration-300 ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+        <div className="overflow-hidden">
+          <div className={`px-6 pb-6 pt-2 ${lockOpen ? 'bg-white' : 'bg-slate-50/50 border-t border-slate-100'}`}>
+            {hospital.departments?.length > 0 ? (
+              hospital.departments.map(dept => (
+                <DepartmentNode key={dept.id || dept.Id} dept={dept} autoExpand={autoExpand} />
+              ))
+            ) : (
+              <p className="text-xs font-bold text-slate-400 py-4 px-2">No departments established.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DepartmentNode({ dept, autoExpand }) {
+  const [isOpen, setIsOpen] = useState(autoExpand);
+
+  useEffect(() => { setIsOpen(autoExpand); }, [autoExpand]);
+  
+  return (
+    <div className="mt-4 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+      <div 
+        className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex items-center gap-3">
+          <Layers size={18} className="text-slate-400" />
+          <span className="text-sm font-bold text-slate-700">{dept.name || dept.Name}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md">
+            {dept.staff?.length || 0} Staff
+          </span>
+          <ChevronRight size={16} className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} />
+        </div>
+      </div>
+
+      <div className={`grid transition-all duration-300 ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+        <div className="overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-50 border-t border-slate-100">
+            {dept.staff?.length > 0 ? (
+              dept.staff.map(member => (
+                <div key={member.id} className="bg-white p-3.5 rounded-xl border border-slate-100 flex items-center gap-3 hover:border-teal-200 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center font-black text-xs shrink-0">
+                    {(member.name || member.Name || "U")[0]}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-bold text-slate-800 truncate">{member.name || member.Name}</p>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mt-0.5">
+                      {member.role === 'doctor' && <Stethoscope size={10} className="text-teal-600" />}
+                      {member.role === 'nurse' && <Activity size={10} className="text-blue-500" />}
+                      {member.role === 'receptionist' && <User size={10} className="text-amber-500" />}
+                      {member.role}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[9px] font-mono font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-md border border-slate-200">
+                      ID:{member.punch_id || "N/A"}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs font-bold text-slate-400 col-span-2 py-2">No staff assigned to this wing.</p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
