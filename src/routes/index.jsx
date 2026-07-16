@@ -155,7 +155,11 @@ const AdminSubscription = lazy(
 );
 
 const HospitalDashboard = lazy(
-  () => import("../pages/Hospital/Dashboard"),
+  () => import("../pages/Admin/Dashboard/index.jsx"),
+);
+
+const DepartmentDashboard = lazy(
+  () => import("../pages/Admin/Dashboard/index.jsx"),
 );
 
 const LoginPatient = lazy(
@@ -353,6 +357,15 @@ const router = createBrowserRouter([
   },
 
   {
+    path: "/dp-dashboard",
+    element: (
+      <Layout name={hospital}>
+        <DepartmentDashboard />
+      </Layout>
+    ),
+  },
+
+  {
     path: "/hp/reports",
     element: (
       <Layout name={hospital}>
@@ -513,6 +526,8 @@ const router = createBrowserRouter([
     path: "/login",
     element: <Login />,
   },
+
+  
 
   {
     path: "/blood-collecting",
