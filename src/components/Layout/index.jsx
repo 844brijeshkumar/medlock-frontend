@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { useLocation, Navigate } from "react-router-dom"; 
 import { User, Users } from "lucide-react";
 import Sidebar from "../Sidebar.jsx";
 import ProfilePhoto from "../ProfilePhoto/index.jsx";
 
-import { patientNavigation, buildDynamicNavigation } from "../../utils/navigation.js";
+// ADDED: extractValidRoutes import
+import { patientNavigation, buildDynamicNavigation, extractValidRoutes } from "../../utils/navigation.js";
 
-// Notice 'navigation' is removed from props since we handle it dynamically now
 const Layout = ({ children, name }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [navItems, setNavItems] = useState([]);
   const [isLoadingNav, setIsLoadingNav] = useState(true);
-
+  
+  // ADDED: Get current URL
+  const location = useLocation();
 
   useEffect(() => {
     const fetchNavigation = async () => {
@@ -36,15 +38,11 @@ const Layout = ({ children, name }) => {
 
         if (response.ok) {
           const rawData = await response.json();
-          // Format the raw JSON into the array structure the Sidebar expects
           const formattedNav = buildDynamicNavigation(rawData.navigation);
           
           setNavItems(formattedNav);
-          
-          // Cache it in localStorage so the UI doesn't blink if the user refreshes the page
           localStorage.setItem("dynamicNav", JSON.stringify(rawData.navigation));
         } else {
-          // Fallback to cache if API returns an error (e.g., token expired)
           const cached = JSON.parse(localStorage.getItem("dynamicNav") || "[]");
           setNavItems(buildDynamicNavigation(cached));
         }
@@ -60,6 +58,30 @@ const Layout = ({ children, name }) => {
     fetchNavigation();
   }, []);
 
+  // --- THE BOUNCER LOGIC ---
+  
+  // 1. Show a blank screen (or loading spinner) while fetching permissions so we don't accidentally kick a valid user
+  if (isLoadingNav) {
+    return <div className="h-screen w-full flex items-center justify-center bg-white">Loading Security Policies...</div>;
+  }
+
+  // 2. Generate the flat list of allowed URLs
+  const validRoutes = extractValidRoutes(navItems);
+  const currentPath = location.pathname.toLowerCase();
+
+  // 3. Check if the current URL matches any allowed route 
+  // We use .startsWith() to allow dynamic child routes (e.g., /branch/edit/1) if /branch is allowed
+  const isAuthorized = validRoutes.some(route => currentPath.startsWith(route));
+
+  // 4. Bypass check for absolute base root if needed (optional based on your app structure)
+  const isRootPath = currentPath === "/" || currentPath === "/dashboard";
+
+  if (!isAuthorized && !isRootPath) {
+    // 5. KICK THEM OUT: Redirect to a 403 page
+    return <Navigate to="/403" replace />;
+  }
+  // -------------------------
+
   return (
     <div className="h-full fixed flex w-full bg-white ">
       <Sidebar
@@ -73,7 +95,6 @@ const Layout = ({ children, name }) => {
         <div className="sticky top-0 z-40 flex h-20 py-6 items-center gap-x-4 border-b justify-between border-gray-200 bg-white px-4 shadow-sm ">
           <div className=" hidden sm:flex items-center gap-2 ">
             <Users className="h-6 w-6 text-primary" />
-
             <h1 className="text-lg text-secondary">{name}</h1>
           </div>
           <div className="flex sm:hidden items-center space-x-3">
